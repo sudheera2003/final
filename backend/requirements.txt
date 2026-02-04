@@ -1,0 +1,8 @@
+flask
+flask-cors
+pymongo
+pandas
+openpyxl
+python-dotenv
+prophet
+openai
