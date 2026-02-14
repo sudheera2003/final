@@ -6,3 +6,5 @@ openpyxl
 python-dotenv
 prophet
 openai
+flask-jwt-extended
+flask-bcrypt

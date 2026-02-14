@@ -1,19 +1,24 @@
-export default function Home() {
+"use client"
+import { useEffect, useState } from "react"
+import { ChartAreaInteractive } from "@/components/chart-area-interactive"
+import { DataTable } from "@/components/data-table"
+import { SectionCards } from "@/components/section-cards"
+
+import data from "./data.json"
+
+export default function Page() {
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Just some dummy cards to show layout */}
-      <div className="aspect-video rounded-xl bg-gray-100/50 p-6">
-        <h2 className="font-bold text-lg">Total Sales</h2>
-        <p className="text-3xl font-bold mt-2">$12,345</p>
-      </div>
-      <div className="aspect-video rounded-xl bg-gray-100/50 p-6">
-         <h2 className="font-bold text-lg">Inventory Status</h2>
-         <p className="text-3xl font-bold mt-2 text-green-600">Healthy</p>
-      </div>
-      <div className="aspect-video rounded-xl bg-gray-100/50 p-6">
-         <h2 className="font-bold text-lg">Pending Uploads</h2>
-         <p className="text-3xl font-bold mt-2">0 Files</p>
-      </div>
-    </div>
-  );
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <SectionCards />
+              <div className="px-4 lg:px-6">
+                <ChartAreaInteractive />
+              </div>
+              <DataTable data={data} />
+            </div>
+          </div>
+        </div>
+  )
 }
