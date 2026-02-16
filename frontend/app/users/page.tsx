@@ -16,7 +16,7 @@ export default function UsersPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch("http://127.0.0.1:5000/api/users")
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users`)
         const result = await res.json()
         setData(result)
       } catch (error) {

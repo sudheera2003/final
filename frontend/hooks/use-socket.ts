@@ -8,7 +8,7 @@ export const useSocket = () => {
 
   useEffect(() => {
     // Connect to your Flask Backend
-    const socketInstance = io("http://127.0.0.1:5000")
+    const socketInstance = io(process.env.NEXT_PUBLIC_BACKEND_URL as string)
 
     socketInstance.on("connect", () => {
       console.log("Connected to WebSocket server")
