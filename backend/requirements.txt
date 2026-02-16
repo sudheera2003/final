@@ -8,3 +8,4 @@ prophet
 openai
 flask-jwt-extended
 flask-bcrypt
+gunicorn
