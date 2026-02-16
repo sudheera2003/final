@@ -86,7 +86,7 @@ export const columns: ColumnDef<User>[] = [
         }
 
         try {
-            const res = await fetch(`http://127.0.0.1:5000/api/users/${user._id}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/${user._id}`, {
                 method: "DELETE",
                 headers: { 
                     "Content-Type": "application/json", // Good practice
