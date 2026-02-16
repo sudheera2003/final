@@ -22,10 +22,15 @@ def create_app():
     # --- 2. DEFINE ALLOWED ORIGINS ---
     # This list allows your frontend to connect from ANY of these locations
     allowed_origins = [
-        "http://localhost:3000",           # Local Frontend
-        "http://127.0.0.1:3000",           # Local Frontend (Alternative IP)
-        "https://final-backend-bsn2.onrender.com", # Your Backend URL (for self-calls)
-        # "https://your-frontend.vercel.app" # <--- UNCOMMENT THIS when you host frontend
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://final-backend-bsn2.onrender.com",
+        
+        # Add your Vercel URL here:
+        "https://final-nowkqafnm-dilums-projects-d5e83860.vercel.app", 
+        
+        # PRO TIP: Add the main domain too (without the random letters) so it always works:
+        "https://final-nowkqafnm.vercel.app" 
     ]
 
     # --- 3. INITIALIZE PLUGINS ---
