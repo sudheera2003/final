@@ -9,3 +9,5 @@ openai
 flask-jwt-extended
 flask-bcrypt
 gunicorn
+flask-socketio
+eventlet
