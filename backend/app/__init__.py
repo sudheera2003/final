@@ -49,7 +49,8 @@ def create_app():
         "https://final-backend-bsn2.onrender.com",
         "https://final-nowkqafnm-dilums-projects-d5e83860.vercel.app", 
         "https://final-nowkqafnm.vercel.app",
-        "https://final-inky-iota.vercel.app"
+        "https://final-inky-iota.vercel.app",
+        "https://final-inky-iota.vercel.app/"
     ]
 
     # --- 3. INITIALIZE PLUGINS ---
