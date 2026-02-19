@@ -4,6 +4,7 @@ from app.extensions import db
 
 app = create_app()
 
+
 def watch_user_changes():
     """
     Background task to watch MongoDB for changes in 'users' collection.
