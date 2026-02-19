@@ -1,5 +1,4 @@
 import os
-from pathlib import Path  # <--- NEW IMPORT
 from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -8,56 +7,48 @@ from app.routes.auth import auth_bp
 from app.routes.sales import sales_bp
 from app.routes.dashboard import dashboard_bp
 
-# --- FIX: FORCE LOAD THE .ENV FILE ---
-# 1. Get the path to this specific file (__init__.py)
-base_dir = Path(__file__).resolve().parent.parent 
-# 2. Point to the .env file in the 'backend' root
-env_path = base_dir / '.env'
-
-# 3. Load it explicitly
-load_dotenv(dotenv_path=env_path)
-
-# --- DEBUGGING BLOCK (Check your terminal!) ---
-print("------------------------------------------------")
-print(f"📂 Looking for .env at: {env_path}")
-if env_path.exists():
-    print("✅ .env file found!")
-else:
-    print("❌ .env file NOT found! Check filename and location.")
-
-uri = os.getenv("MONGO_URI")
-if uri:
-    # Print only the start to prove it's loaded (hiding password)
-    print(f"🔗 MONGO_URI Loaded: {uri[:25]}...")
-else:
-    print("⚠️ MONGO_URI is MISSING. App will try localhost (and likely fail).")
-print("------------------------------------------------")
-
+# Explicitly load environment variables from .env file
+load_dotenv()
 
 def create_app():
     app = Flask(__name__)
     
     # --- 1. CONFIGURATION ---
+    # Load keys from .env, with fallbacks for safety
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev_secret")
     app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "jwt_secret")
     app.config['MONGO_URI'] = os.getenv("MONGO_URI")
 
     # --- 2. DEFINE ALLOWED ORIGINS ---
+    # This list allows your frontend to connect from ANY of these locations
     allowed_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://final-backend-bsn2.onrender.com",
+        
+        # Add your Vercel URL here:
         "https://final-nowkqafnm-dilums-projects-d5e83860.vercel.app", 
+<<<<<<< HEAD
         "https://final-nowkqafnm.vercel.app",
         "https://final-inky-iota.vercel.app",
         "https://final-inky-iota.vercel.app/"
+=======
+        
+        # PRO TIP: Add the main domain too (without the random letters) so it always works:
+        "https://final-nowkqafnm.vercel.app" 
+>>>>>>> parent of d137733 (backend watcher remove)
     ]
 
     # --- 3. INITIALIZE PLUGINS ---
+    
+    # Enable CORS for standard HTTP requests (Login, Register, Dashboard data)
     CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
     bcrypt.init_app(app)
     jwt.init_app(app)
+
+    # Enable SocketIO for Real-Time updates (Sidebar, User Table)
+    # cors_allowed_origins must match the list above
     socketio.init_app(app, cors_allowed_origins=allowed_origins)
 
     # --- 4. ROUTES ---
@@ -66,9 +57,10 @@ def create_app():
         return jsonify({
             "status": "healthy", 
             "message": "Modular Backend Running!", 
-            "mongo_connected": bool(app.config['MONGO_URI'])
+            "env": "production" if os.getenv("RENDER") else "development"
         })
 
+    # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(sales_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp, url_prefix='/api')
