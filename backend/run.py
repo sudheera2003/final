@@ -1,6 +1,7 @@
 import os
 from app import create_app, socketio
 from app.extensions import db
+from app.extensions import db
 
 app = create_app()
 
@@ -37,6 +38,8 @@ def watch_user_changes():
             print(f"⚠️ Change Stream not active (requires Replica Set): {e}")
 
 if __name__ == '__main__':
+    # 1. Get the PORT from Environment (Render sets this automatically)
+    # If not found (Local), default to 5000
     port = int(os.environ.get("PORT", 5000))
     
     socketio.start_background_task(target=watch_user_changes)
