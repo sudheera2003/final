@@ -34,15 +34,9 @@ def create_app():
         
         # Add your Vercel URL here:
         "https://final-nowkqafnm-dilums-projects-d5e83860.vercel.app", 
-<<<<<<< HEAD
         "https://final-nowkqafnm.vercel.app",
         "https://final-inky-iota.vercel.app",
         "https://final-inky-iota.vercel.app/"
-=======
-        
-        # PRO TIP: Add the main domain too (without the random letters) so it always works:
-        "https://final-nowkqafnm.vercel.app" 
->>>>>>> parent of d137733 (backend watcher remove)
     ]
 
     # --- 3. INITIALIZE PLUGINS ---
@@ -68,7 +62,6 @@ def create_app():
         return jsonify({
             "status": "healthy", 
             "message": "Modular Backend Running!", 
-            "env": "production" if os.getenv("RENDER") else "development"
             "env": "production" if os.getenv("RENDER") else "development"
         })
 
