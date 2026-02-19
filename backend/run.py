@@ -36,16 +36,8 @@ def watch_user_changes():
             print(f"⚠️ Change Stream not active (requires Replica Set): {e}")
 
 if __name__ == '__main__':
-    # 1. Get the PORT from Environment (Render sets this automatically)
-    # If not found (Local), default to 5000
     port = int(os.environ.get("PORT", 5000))
     
-    # 2. Start the Background Task
-    # We use socketio.start_background_task instead of threading
     socketio.start_background_task(target=watch_user_changes)
-
-    # 3. Run the Server
-    # host='0.0.0.0' is REQUIRED for Render to expose the app
-    # debug=True is fine for dev, but Render will ignore it if using Gunicorn (optional)
     print(f"🚀 Server starting on port {port}...")
     socketio.run(app, host='0.0.0.0', port=port, debug=True, use_reloader=False)
