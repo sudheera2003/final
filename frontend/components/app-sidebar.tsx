@@ -34,10 +34,10 @@ const data = {
       ),
     },
     {
-      title: "Lifecycle",
-      url: "#",
+      title: "Inventory",
+      url: "inventory",
       icon: (
-        <ListIcon
+        <DatabaseIcon
         />
       ),
     },

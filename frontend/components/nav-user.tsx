@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -145,10 +146,12 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <Link href="/profile">
               <DropdownMenuItem>
                 <CircleUserRoundIcon />
                 Account
               </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem>
                 <CreditCardIcon />
                 Billing

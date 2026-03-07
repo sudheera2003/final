@@ -28,31 +28,78 @@ def login():
     return jsonify({"error": "Invalid credentials"}), 401
 
 
-# --- UPDATE PROFILE ROUTE (With WebSocket) ---
+# --- UPDATE PROFILE ROUTE (With WebSocket & Email Update) ---
 @auth_bp.route('/update-profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
     current_email = get_jwt_identity()
     data = request.get_json()
-    new_name = data.get('name')
     
-    if not new_name:
-        return jsonify({"error": "Name is required"}), 400
+    new_name = data.get('name')
+    new_email = data.get('email')
+    
+    if not new_name or not new_email:
+        return jsonify({"error": "Name and email are required"}), 400
 
+    # If the user is trying to change their email, check if it's already taken
+    if new_email != current_email:
+        existing_user = db.users.find_one({"email": new_email})
+        if existing_user:
+            return jsonify({"error": "Email is already in use by another account"}), 400
+
+    # Update user in DB
     result = db.users.update_one(
         {"email": current_email},
-        {"$set": {"name": new_name}}
+        {"$set": {"name": new_name, "email": new_email}}
     )
 
-    if result.modified_count > 0:
-        # Emit event so the Sidebar updates instantly
-        socketio.emit('profile_updated', {
-            'email': current_email,
-            'name': new_name
-        })
-        return jsonify({"message": "Success", "name": new_name}), 200
+    # If the email changed, we need to issue a new JWT token so future requests don't fail
+    new_token = None
+    if new_email != current_email:
+        new_token = create_access_token(identity=new_email)
+
+    # Emit event so the Sidebar updates instantly
+    socketio.emit('profile_updated', {
+        'email': new_email,
+        'name': new_name
+    })
     
-    return jsonify({"message": "No changes made"}), 200
+    response_data = {"message": "Profile updated successfully", "name": new_name, "email": new_email}
+    if new_token:
+        response_data["token"] = new_token
+        
+    return jsonify(response_data), 200
+
+
+# --- CHANGE PASSWORD ROUTE ---
+@auth_bp.route('/password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    current_email = get_jwt_identity()
+    data = request.get_json()
+    
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+    
+    if not current_password or not new_password:
+        return jsonify({"error": "Both current and new passwords are required"}), 400
+        
+    user = db.users.find_one({"email": current_email})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    # Verify the old password is correct
+    if not bcrypt.check_password_hash(user['password'], current_password):
+        return jsonify({"error": "Incorrect current password"}), 401
+        
+    # Hash the new password and save it
+    hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    db.users.update_one(
+        {"email": current_email},
+        {"$set": {"password": hashed_password}}
+    )
+    
+    return jsonify({"message": "Password changed successfully"}), 200
 
 
 # --- REGISTER / ADD USER ROUTE (With WebSocket) ---
@@ -82,7 +129,6 @@ def register():
     })
 
     # --- WEBSOCKET EMIT: Tell frontend a new user exists ---
-    # This updates the Admin Table instantly!
     socketio.emit('user_created', {
         "_id": str(result.inserted_id),
         "name": name,
@@ -104,6 +150,20 @@ def get_users():
     
     return jsonify(users), 200
 
+# --- GET CURRENT LOGGED IN USER ---
+@auth_bp.route('/users/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    current_email = get_jwt_identity()
+    
+    # Find the user, excluding the password field for security
+    user = db.users.find_one({"email": current_email}, {"password": 0})
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    user['_id'] = str(user['_id']) # Convert ObjectId to string
+    return jsonify(user), 200
 
 # --- DELETE USER ROUTE (With WebSocket) ---
 @auth_bp.route('/users/<user_id>', methods=['DELETE'])

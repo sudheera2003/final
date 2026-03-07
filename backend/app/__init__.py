@@ -6,6 +6,7 @@ from app.extensions import socketio, bcrypt, jwt
 from app.routes.auth import auth_bp
 from app.routes.sales import sales_bp
 from app.routes.dashboard import dashboard_bp
+from app.routes.inventory import inventory_bp
 
 # Explicitly load environment variables from .env file
 load_dotenv()
@@ -70,5 +71,6 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(sales_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp, url_prefix='/api')
+    app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
 
     return app
