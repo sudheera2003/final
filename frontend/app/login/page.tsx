@@ -52,7 +52,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-neutral-950">
+    <div className="flex items-center justify-center min-h-screen bg-white dark:bg-neutral-950">
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>RestoAI Login</CardTitle>

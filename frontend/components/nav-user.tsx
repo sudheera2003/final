@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Link from "next/link"
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +20,18 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   EllipsisVerticalIcon,
   CircleUserRoundIcon,
-  CreditCardIcon,
-  BellIcon,
   LogOutIcon,
 } from "lucide-react";
 import { useSocket } from "@/hooks/use-socket";
@@ -42,6 +50,9 @@ export function NavUser({
   const socket = useSocket();
 
   const [userData, setUserData] = useState(user);
+  
+  // State to control the visibility of the logout confirmation dialog
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
   // 1. Load Initial User Data from LocalStorage
   useEffect(() => {
@@ -88,7 +99,7 @@ export function NavUser({
   // 3. Handle Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("email"); // Changed from username to email
+    localStorage.removeItem("email"); 
     localStorage.removeItem("name");
     router.push("/login");
   };
@@ -147,24 +158,19 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <Link href="/profile">
-              <DropdownMenuItem>
-                <CircleUserRoundIcon />
-                Account
-              </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <CircleUserRoundIcon />
+                  Account
+                </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem>
-                <CreditCardIcon />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon />
-                Notifications
-              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onClick={handleLogout}
+              onSelect={(e) => {
+                e.preventDefault(); // Prevents the dropdown from ignoring the alert opening
+                setShowLogoutAlert(true);
+              }}
               className="cursor-pointer text-red-500 focus:text-red-500"
             >
               <LogOutIcon />
@@ -172,6 +178,28 @@ export function NavUser({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* LOGOUT CONFIRMATION DIALOG */}
+        <AlertDialog open={showLogoutAlert} onOpenChange={setShowLogoutAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You will need to re-enter your credentials to access the RestoAI dashboard again.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleLogout} 
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                Log out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </SidebarMenuItem>
     </SidebarMenu>
   );

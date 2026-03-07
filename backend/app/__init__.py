@@ -4,12 +4,11 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from app.extensions import socketio, bcrypt, jwt
 from app.routes.auth import auth_bp
-from app.routes.sales import sales_bp
 from app.routes.dashboard import dashboard_bp
 from app.routes.inventory import inventory_bp
+from app.routes.products import products_bp
+from app.routes.sales import sales_bp
 
-# Explicitly load environment variables from .env file
-load_dotenv()
 # Explicitly load environment variables from .env file
 load_dotenv()
 
@@ -18,22 +17,19 @@ def create_app():
     
     # --- 1. CONFIGURATION ---
     # Load keys from .env, with fallbacks for safety
-    # Load keys from .env, with fallbacks for safety
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev_secret")
     app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "jwt_secret")
     app.config['MONGO_URI'] = os.getenv("MONGO_URI")
 
     # --- 2. DEFINE ALLOWED ORIGINS ---
     # This list allows your frontend to connect from ANY of these locations
-    # This list allows your frontend to connect from ANY of these locations
     allowed_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://final-backend-bsn2.onrender.com",
         
-        # Add your Vercel URL here:
         
-        # Add your Vercel URL here:
+        #Vercel URL here:
         "https://final-nowkqafnm-dilums-projects-d5e83860.vercel.app", 
         "https://final-nowkqafnm.vercel.app",
         "https://final-inky-iota.vercel.app",
@@ -67,10 +63,10 @@ def create_app():
         })
 
     # Register Blueprints
-    # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api')
-    app.register_blueprint(sales_bp, url_prefix='/api')
+    app.register_blueprint(sales_bp, url_prefix='/api/sales')
     app.register_blueprint(dashboard_bp, url_prefix='/api')
     app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
+    app.register_blueprint(products_bp, url_prefix='/api/products')
 
     return app

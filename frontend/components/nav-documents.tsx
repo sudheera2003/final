@@ -215,7 +215,8 @@ export function NavDocuments({
         {/* --- 2. RENDER OTHER ITEMS NORMALLY --- */}
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild isActive={pathname === item.url}>
+            <SidebarMenuButton asChild isActive={pathname === item.url}
+            >
               <Link href={item.url}>
                 {item.icon}
                 <span>{item.name}</span>

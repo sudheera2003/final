@@ -15,14 +15,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, UserPlus2Icon, UserRoundSearchIcon } from "lucide-react"
+import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, UserPlus2Icon, UserRoundSearchIcon, List, Box, Menu, Package2, ChartArea, BotMessageSquare } from "lucide-react"
 import Link from "next/link"
 
 const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    avatar: "",
   },
   navMain: [
     {
@@ -33,105 +33,40 @@ const data = {
         />
       ),
     },
+        {
+      title: "Sales",
+      url: "/sales",
+      icon: (
+        <ChartArea
+        />
+      ),
+    },
     {
       title: "Inventory",
-      url: "inventory",
+      url: "/inventory",
       icon: (
-        <DatabaseIcon
+        <Box
         />
       ),
     },
     {
-      title: "Analytics",
-      url: "#",
+      title: "Products",
+      url: "/products",
       icon: (
-        <ChartBarIcon
+        <Package2
         />
       ),
     },
     {
-      title: "Projects",
+      title: "Chat-Bot",
       url: "#",
       icon: (
-        <FolderIcon
+        <BotMessageSquare
         />
       ),
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: (
-        <UsersIcon
-        />
-      ),
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: (
-        <CameraIcon
-        />
-      ),
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
     },
   ],
   navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: (
-        <Settings2Icon
-        />
-      ),
-    },
     {
       title: "Get Help",
       url: "#",

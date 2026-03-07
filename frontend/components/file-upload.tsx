@@ -14,19 +14,19 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles((prev) => {
-      const newFiles = [...prev, ...acceptedFiles];
-      onFilesChange(newFiles); // Notify parent component
-      return newFiles;
-    });
-  }, [onFilesChange]);
+    // 1. Calculate the new array using the current 'files' state
+    const newFiles = [...files, ...acceptedFiles];
+    
+    // 2. Safely update both local and parent states independently
+    setFiles(newFiles);
+    onFilesChange(newFiles); 
+  }, [files, onFilesChange]);
 
   const removeFile = (indexToRemove: number) => {
-    setFiles((prev) => {
-      const newFiles = prev.filter((_, index) => index !== indexToRemove);
-      onFilesChange(newFiles);
-      return newFiles;
-    });
+    const newFiles = files.filter((_, index) => index !== indexToRemove);
+    
+    setFiles(newFiles);
+    onFilesChange(newFiles);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });

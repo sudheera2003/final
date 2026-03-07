@@ -2,112 +2,150 @@ import os
 import tempfile
 import pandas as pd
 from flask import Blueprint, request, jsonify
-from pymongo import UpdateOne
+from flask_jwt_extended import jwt_required
+from bson import ObjectId
 from datetime import datetime
+from pymongo import UpdateOne
 from app.extensions import db, socketio
 
 sales_bp = Blueprint('sales', __name__)
 
-@sales_bp.route('/upload-sales', methods=['POST'])
-def upload_sales():
-    # 1. Basic Validation
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
+# 1. GET ALL SALES (For the Data Table)
+@sales_bp.route('/', methods=['GET'], strict_slashes=False)
+@jwt_required()
+def get_sales():
+    try:
+        # Sort by newest first
+        sales = list(db.sales.find().sort("timestamp", -1))
+        for sale in sales:
+            sale['_id'] = str(sale['_id'])
+            sale['product_id'] = str(sale.get('product_id', ''))
+        return jsonify(sales), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    temp_path = None # To track the file for cleanup
+# 2. RECORD A SINGLE SALE (The Mini-POS)
+@sales_bp.route('/', methods=['POST'], strict_slashes=False)
+@jwt_required()
+def record_sale():
+    data = request.get_json()
+    product_id = data.get("product_id")
+    quantity_sold = int(data.get("quantity", 1))
 
     try:
-        # 2. Save to a Temporary File (Safe for Hosted Apps)
-        # We create a temp file so pandas can read it reliably without RAM issues
+        # Check for ObjectId or String ID
+        try:
+            product = db.products.find_one({"_id": ObjectId(product_id)})
+        except:
+            product = db.products.find_one({"_id": product_id})
+
+        if not product:
+            return jsonify({"error": "Product not found"}), 404
+
+        # Calculate Revenue
+        total_price = float(product.get("price", 0)) * quantity_sold
+
+        # Record Transaction
+        new_sale = {
+            "product_id": str(product["_id"]),
+            "product_name": product.get("name"),
+            "category": product.get("category"),
+            "quantity": quantity_sold,
+            "total_price": total_price,
+            "timestamp": datetime.now()
+        }
+        db.sales.insert_one(new_sale)
+
+        # THE MAGIC: Deduct from Inventory
+        recipe = product.get("recipe", [])
+        for item in recipe:
+            ing_id = item.get("ingredient_id")
+            qty_per_item = float(item.get("qty", 0))
+            total_deduction = qty_per_item * quantity_sold
+
+            # Deduct the stock
+            try:
+                db.inventory.update_one({"_id": ObjectId(ing_id)}, {"$inc": {"stock": -total_deduction}})
+            except:
+                db.inventory.update_one({"_id": ing_id}, {"$inc": {"stock": -total_deduction}})
+
+        # Fire WebSockets to update UI instantly without refresh
+        socketio.emit('sales_changed', {"message": "New sale recorded"})
+        socketio.emit('inventory_changed', {"message": "Inventory deducted from sale"})
+
+        return jsonify({"message": "Sale recorded and inventory updated!"}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# 3. BULK UPLOAD SALES (End-of-day Excel File)
+@sales_bp.route('/bulk-import', methods=['POST'])
+@jwt_required()
+def bulk_import():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    temp_path = None
+
+    try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp:
             file.save(temp.name)
             temp_path = temp.name
 
-        # 3. Read Excel using the Temp File Path
         df = pd.read_excel(temp_path)
-        
-        # Clean column names (remove spaces, convert to lowercase)
         df.columns = df.columns.str.strip().str.lower()
-        
-        # Column Validation
-        required_columns = {'itemname', 'quantitysold'}
-        if not required_columns.issubset(df.columns):
-            return jsonify({
-                "error": f"Excel must contain columns: {', '.join(required_columns)}"
-            }), 400
 
-        inventory_updates = []
-        sales_records = []
-        updates_log = []
+        if not {'product_name', 'quantity'}.issubset(df.columns):
+            return jsonify({"error": "Missing columns. Required: product_name, quantity"}), 400
 
-        # 4. Process Rows
-        for index, row in df.iterrows():
-            item_name = row['itemname']
-            qty_sold = row['quantitysold']
-            
-            # Find the product to get its recipe
-            product = db.products.find_one({"name": item_name})
-            
-            if product:
-                # --- A. Prepare Inventory Deductions ---
-                recipe = product.get('recipe', [])
-                for ingredient in recipe:
-                    ing_id = ingredient.get('ingredient_id')
-                    needed_per_unit = ingredient.get('qty', 0)
-                    
-                    if ing_id:
-                        total_needed = needed_per_unit * qty_sold
-                        
-                        # Add to the Bulk Write list (much faster than individual updates)
-                        inventory_updates.append(
-                            UpdateOne(
-                                {"_id": ing_id}, 
-                                {"$inc": {"stock": -1 * total_needed}}
-                            )
-                        )
+        sales_to_insert = []
+        inventory_operations = []
+
+        for _, row in df.iterrows():
+            product_name = str(row['product_name']).strip()
+            quantity = int(row['quantity'])
+
+            # Look up product by name
+            product = db.products.find_one({"name": {"$regex": f"^{product_name}$", "$options": "i"}})
+            if not product:
+                continue # Skip if product is misspelled in Excel
+
+            total_price = float(product.get("price", 0)) * quantity
+
+            sales_to_insert.append({
+                "product_id": str(product["_id"]),
+                "product_name": product.get("name"),
+                "category": product.get("category"),
+                "quantity": quantity,
+                "total_price": total_price,
+                "timestamp": datetime.now()
+            })
+
+            # Prepare inventory deductions
+            for item in product.get("recipe", []):
+                ing_id = item.get("ingredient_id")
+                deduction = float(item.get("qty", 0)) * quantity
                 
-                # --- B. Record the Sale ---
-                sales_records.append({
-                    "item_name": item_name,
-                    "quantity": qty_sold,
-                    "revenue": product.get('price', 0) * qty_sold,
-                    "date": datetime.now()
-                })
-                updates_log.append(f"Sold {qty_sold} x {item_name}")
-            else:
-                updates_log.append(f"Skipped {item_name} (Not found in database)")
+                try:
+                    inventory_operations.append(UpdateOne({"_id": ObjectId(ing_id)}, {"$inc": {"stock": -deduction}}))
+                except:
+                    inventory_operations.append(UpdateOne({"_id": ing_id}, {"$inc": {"stock": -deduction}}))
 
-        # 5. Execute Database Updates
-        if inventory_updates:
-            db.inventory.bulk_write(inventory_updates)
-            
-        if sales_records:
-            db.sales.insert_many(sales_records)
+        # Execute all updates at once for speed
+        if sales_to_insert:
+            db.sales.insert_many(sales_to_insert)
+        if inventory_operations:
+            db.inventory.bulk_write(inventory_operations, ordered=False)
 
-        # 6. Notify Frontend via SocketIO
-        # This updates your Dashboard charts and Inventory table instantly!
-        socketio.emit('inventory_update', {
-            'message': 'New sales data processed', 
-            'sales_count': len(sales_records),
-            'timestamp': datetime.now().isoformat()
-        })
+        socketio.emit('sales_changed', {"message": "Bulk sales imported"})
+        socketio.emit('inventory_changed', {"message": "Inventory updated from bulk sales"})
 
-        return jsonify({
-            "message": "Success", 
-            "processed": len(sales_records),
-            "log": updates_log
-        })
+        return jsonify({"message": f"Successfully processed {len(sales_to_insert)} sales"}), 200
 
     except Exception as e:
-        print(f"Error processing sales: {e}")
-        return jsonify({"error": f"Processing failed: {str(e)}"}), 500
-
+        return jsonify({"error": str(e)}), 500
     finally:
-        # 7. CLEANUP: Delete the temp file from the server
-        # This is crucial for Render/Heroku to avoid filling up disk space
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)

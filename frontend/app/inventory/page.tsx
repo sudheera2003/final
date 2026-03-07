@@ -126,7 +126,7 @@ export default function InventoryPage() {
       });
       
       if (res.ok) {
-        toast.success("Inventory updated successfully!");
+        toast.success("Inventory updated successfully");
         setIsUploadDialogOpen(false); 
         setFiles([]); 
         fetchData(); 
@@ -161,7 +161,7 @@ export default function InventoryPage() {
       });
       
       if (res.ok) {
-        toast.success("Ingredient added!");
+        toast.success("Ingredient added");
         setIsAddDialogOpen(false);
         fetchData(); 
       } else {
@@ -218,7 +218,7 @@ export default function InventoryPage() {
       });
       
       if (res.ok) {
-        toast.success("Ingredient updated!");
+        toast.success("Ingredient updated");
         setIsEditDialogOpen(false);
         fetchData(); 
       } else {
