@@ -8,6 +8,7 @@ from app.routes.dashboard import dashboard_bp
 from app.routes.inventory import inventory_bp
 from app.routes.products import products_bp
 from app.routes.sales import sales_bp
+from app.routes.predict import predict_bp
 
 # Explicitly load environment variables from .env file
 load_dotenv()
@@ -68,5 +69,6 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/api')
     app.register_blueprint(inventory_bp, url_prefix='/api/inventory')
     app.register_blueprint(products_bp, url_prefix='/api/products')
+    app.register_blueprint(predict_bp, url_prefix='/api/predict')
 
     return app

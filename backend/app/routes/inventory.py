@@ -38,7 +38,7 @@ def add_ingredient():
         "unit": data.get("unit", "pcs"),
         "unit_price": float(data.get("unit_price", 0)),
         "supplier": data.get("supplier", "Unknown"),
-        "low_stock_threshold": float(data.get("low_stock_threshold", 20)), 
+        "low_stock_threshold": float(data.get("low_stock_threshold", 10)), 
         "lastUpdated": datetime.now()
     }
     
@@ -73,19 +73,25 @@ def bulk_import():
             name = str(row['name']).strip()
             added_stock = float(row['stock'])
             
-            # Upsert logic: If name exists, increment stock. If not, create new document.
+            # Upsert logic: 
+            # $inc increases the stock.
+            # $set forcefully updates the threshold and timestamp every time.
+            # $setOnInsert only runs if the item is brand new.
             bulk_operations.append(
                 UpdateOne(
                     {"name": name},
                     {
                         "$inc": {"stock": added_stock},
+                        "$set": {
+                            "low_stock_threshold": float(row.get('low_stock_threshold', 10)),
+                            "lastUpdated": datetime.now()
+                        },
                         "$setOnInsert": {
                             "category": row.get('category', 'Imported'),
                             "status": "In Stock",
                             "unit": row.get('unit', 'pcs'),
                             "unit_price": float(row.get('unit_price', 0)),
-                            "supplier": row.get('supplier', 'Excel Import'),
-                            "lastUpdated": datetime.now()
+                            "supplier": row.get('supplier', 'Excel Import')
                         }
                     },
                     upsert=True
@@ -103,7 +109,6 @@ def bulk_import():
     finally:
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
-            
             
             
 # 4. DELETE INGREDIENT
@@ -142,7 +147,7 @@ def update_ingredient(item_id):
         "unit": data.get("unit"),
         "unit_price": float(data.get("unit_price", 0)),
         "supplier": data.get("supplier"),
-        "low_stock_threshold": float(data.get("low_stock_threshold")),
+        "low_stock_threshold": float(data.get("low_stock_threshold", 10)), # Added fallback here too
         "lastUpdated": datetime.now()
     }
 

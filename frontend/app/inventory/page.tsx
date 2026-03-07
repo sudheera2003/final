@@ -287,7 +287,7 @@ export default function InventoryPage() {
     {
       accessorKey: "unit_price",
       header: "Limit (Price)",
-      cell: ({ row }) => <div>${Number(row.getValue("unit_price")).toFixed(2)}</div>,
+      cell: ({ row }) => <div>LKR.{Number(row.getValue("unit_price")).toFixed(2)}</div>,
     },
     {
       accessorKey: "supplier",
@@ -475,8 +475,8 @@ export default function InventoryPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">Unit Price</label>
-                    <Input name="unit_price" type="number" step="0.01" placeholder="Unit Price ($)" required />
+                    <label className="text-sm font-medium text-foreground">Unit Price (LKR)</label>
+                    <Input name="unit_price" type="number" step="0.01" placeholder="Unit Price (LKR)" required />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-foreground">Low Stock Alert</label>
@@ -526,7 +526,7 @@ export default function InventoryPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-foreground">Unit Price</label>
+                      <label className="text-sm font-medium text-foreground">Unit Price (LKR)</label>
                       <Input name="unit_price" type="number" step="0.01" defaultValue={editingItem.unit_price} placeholder="Unit Price" required />
                     </div>
                     <div className="space-y-1.5">

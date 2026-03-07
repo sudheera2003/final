@@ -210,7 +210,7 @@ export default function SalesPage() {
     {
       accessorKey: "total_price",
       header: "Revenue",
-      cell: ({ row }) => <div className="font-bold text-foreground">${Number(row.getValue("total_price")).toFixed(2)}</div>,
+      cell: ({ row }) => <div className="font-bold text-foreground">LKR.{Number(row.getValue("total_price")).toFixed(2)}</div>,
     },
     {
       id: "profit",
@@ -224,7 +224,7 @@ export default function SalesPage() {
 
         return (
           <div className={`font-medium ${isGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-            {isGood ? "+" : ""}${profit.toFixed(2)}
+            {isGood ? "+" : ""}LKR.{profit.toFixed(2)}
           </div>
         );
       },
@@ -254,7 +254,7 @@ export default function SalesPage() {
             <h3 className="tracking-tight text-sm font-medium">Total Revenue Today</h3>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-bold">${totalRevenueToday.toFixed(2)}</div>
+          <div className="text-2xl font-bold">LKR.{totalRevenueToday.toFixed(2)}</div>
         </div>
         
         <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
@@ -271,7 +271,7 @@ export default function SalesPage() {
             <TrendingUp className="h-4 w-4 text-green-500" />
           </div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            +${totalProfitToday.toFixed(2)}
+            +LKR.{totalProfitToday.toFixed(2)}
           </div>
         </div>
       </div>
@@ -295,7 +295,7 @@ export default function SalesPage() {
             >
               <option value="" disabled>Select Menu Item...</option>
               {products.map(prod => (
-                <option key={prod._id} value={prod._id}>{prod.name} (${prod.price.toFixed(2)})</option>
+                <option key={prod._id} value={prod._id}>{prod.name} (LKR.{prod.price.toFixed(2)})</option>
               ))}
             </select>
 

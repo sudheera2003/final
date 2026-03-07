@@ -245,7 +245,7 @@ export default function ProductsPage() {
     {
       accessorKey: "price",
       header: "Selling Price",
-      cell: ({ row }) => <div className="font-semibold text-foreground">${Number(row.getValue("price")).toFixed(2)}</div>,
+      cell: ({ row }) => <div className="font-semibold text-foreground">LKR.{Number(row.getValue("price")).toFixed(2)}</div>,
     },
     {
       id: "cost",
@@ -256,7 +256,7 @@ export default function ProductsPage() {
           const invItem = inventory.find(i => i._id === rItem.ingredient_id);
           return total + (invItem ? invItem.unit_price * rItem.qty : 0);
         }, 0);
-        return <div className="text-muted-foreground">${itemCost.toFixed(2)}</div>;
+        return <div className="text-muted-foreground">LKR.{itemCost.toFixed(2)}</div>;
       },
     },
     {
@@ -365,7 +365,7 @@ export default function ProductsPage() {
               >
                 <option value="" disabled>Select Ingredient...</option>
                 {inventory.map(inv => (
-                  <option key={inv._id} value={inv._id}>{inv.name} (${inv.unit_price} / {inv.unit})</option>
+                  <option key={inv._id} value={inv._id}>{inv.name} (LKR.{inv.unit_price} / {inv.unit})</option>
                 ))}
               </select>
               
@@ -390,7 +390,7 @@ export default function ProductsPage() {
       <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-muted-foreground">Total Cost to Make:</span>
-          <span className="text-lg font-bold text-foreground">${costToMake.toFixed(2)}</span>
+          <span className="text-lg font-bold text-foreground">LKR.{costToMake.toFixed(2)}</span>
         </div>
         
         <div className="flex items-center gap-4">
@@ -407,7 +407,7 @@ export default function ProductsPage() {
           <div className="flex-1 space-y-1.5">
             <label className="text-sm font-medium">Projected Profit</label>
             <div className={`flex items-center h-12 px-4 rounded-md border ${profit > 0 ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'}`}>
-              <span className="text-lg font-bold mr-2">${profit.toFixed(2)}</span>
+              <span className="text-lg font-bold mr-2">LKR.{profit.toFixed(2)}</span>
               <span className="text-sm font-medium">({margin.toFixed(1)}% margin)</span>
             </div>
           </div>
