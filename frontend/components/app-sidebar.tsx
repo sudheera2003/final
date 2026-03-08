@@ -59,7 +59,7 @@ const data = {
     },
     {
       title: "Chat-Bot",
-      url: "#",
+      url: "/chat",
       icon: (
         <BotMessageSquare
         />
@@ -69,17 +69,9 @@ const data = {
   navSecondary: [
     {
       title: "Get Help",
-      url: "#",
+      url: "/help",
       icon: (
         <CircleHelpIcon
-        />
-      ),
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: (
-        <SearchIcon
         />
       ),
     },
@@ -107,8 +99,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link href="/">
-                <CommandIcon className="size-5!" />
-                <span className="text-base font-semibold">RestoAI</span>
+                <CommandIcon className="size-5! text-(--primary)" />
+                <span className="text-base font-semibold text-(--primary)">RestoAI</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

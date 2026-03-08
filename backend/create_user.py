@@ -4,6 +4,7 @@ from flask import Flask
 import os
 from dotenv import load_dotenv
 import certifi
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -37,11 +38,9 @@ def create_admin_user():
         "email": email,
         "password": hashed_password,
         "name": name,
-        "role": "admin"
+        "role": "admin",
+        "createdAt": datetime.now()
     })
-
-    print(f"✅ Successfully created user: {email}")
-    print(f"🔑 Password: {password}")
 
 if __name__ == "__main__":
     create_admin_user()

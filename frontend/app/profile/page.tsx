@@ -17,8 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-// Icons
-import { Mail, Shield, Copy, Check } from "lucide-react";
+// Icons (Added User icon)
+import { Mail, Shield, Copy, Check, CalendarDays, Key, Edit3, User, X, User2 } from "lucide-react";
 
 // ─── SCHEMAS ─────────────────────────────────────────────────────────────────
 const profileSchema = z.object({
@@ -56,8 +56,8 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   
-  // Dialog States
-  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  // UI States
+  const [isEditingProfile, setIsEditingProfile] = useState(false); // Controls inline editing
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -74,10 +74,9 @@ export default function ProfilePage() {
       try {
         const token = localStorage.getItem("token");
         
-        // If there's no token at all, they shouldn't be on this page.
         if (!token) {
           console.warn("No token found. Redirecting to login...");
-          window.location.href = "/"; // Change this if your login page is somewhere else
+          window.location.href = "/";
           return;
         }
 
@@ -91,11 +90,26 @@ export default function ProfilePage() {
         if (response.ok) {
            const currentUser = await response.json();
            
+           // --- NEW DATE FORMATTING LOGIC ---
+           // Look for the date from the database, fallback to "Recently" if missing
+           const rawDate = currentUser.joinedAt || currentUser.createdAt || currentUser.created_at;
+           
+           let formattedDate = "Recently";
+           if (rawDate) {
+             const dateObj = new Date(rawDate);
+             formattedDate = new Intl.DateTimeFormat('en-US', { 
+               month: 'long', 
+               day: 'numeric', 
+               year: 'numeric' 
+             }).format(dateObj);
+           }
+           // ----------------------------------
+
            setUserData({
                name: currentUser.name || "Unknown",
                email: currentUser.email || "No Email",
                role: currentUser.role || "user",
-               joinedAt: currentUser.joinedAt || "Recently" // Fallback if joinedAt isn't in DB
+               joinedAt: formattedDate
            });
            
            profileForm.reset({ 
@@ -103,11 +117,10 @@ export default function ProfilePage() {
                email: currentUser.email || "" 
            });
         } else if (response.status === 401) {
-           // Token is invalid or expired
            console.error("Token invalid or expired. Please log in again.");
            localStorage.removeItem("token");
            localStorage.removeItem("userEmail");
-           window.location.href = "/"; // Redirect to login
+           window.location.href = "/";
         } else {
            console.error("Failed to fetch user. Status:", response.status);
         }
@@ -118,7 +131,7 @@ export default function ProfilePage() {
       }
     }
     fetchUser();
-  }, [profileForm]); // Note: profileForm is in the dependency array
+  }, [profileForm]);
 
 
   // ─── ACTIONS ────────────────────────────────────────────────────────────────
@@ -127,6 +140,11 @@ export default function ProfilePage() {
     setIsCopied(true);
     toast.success("Email copied to clipboard");
     setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handleCancelEdit = () => {
+    profileForm.reset({ name: userData.name, email: userData.email });
+    setIsEditingProfile(false);
   };
 
   async function onProfileSubmit(data: ProfileValues) {
@@ -147,7 +165,7 @@ export default function ProfilePage() {
 
       setUserData(prev => ({ ...prev, name: data.name, email: data.email }));
       toast.success("Profile updated!");
-      setIsProfileDialogOpen(false);
+      setIsEditingProfile(false); // Close edit mode on success
     } catch (error: any) {
       toast.error(error.message || "Could not update profile.");
     } finally {
@@ -178,164 +196,220 @@ export default function ProfilePage() {
     }
   }
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading profile...</div>;
+  if (isLoading) return <div className="min-h-[calc(100vh-80px)] flex items-center justify-center">Loading profile...</div>;
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-md space-y-4">
+      <div className="p-6 max-w-5xl mx-auto space-y-8 h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar">
+        
+        {/* PAGE HEADER */}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your personal profile and security preferences.
+          </p>
+        </div>
 
-          {/* ── Main profile card ─────────────────────────────────────────── */}
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-col items-center gap-4 pt-8 pb-4">
-              
-              {/* Avatar (Initials Only) */}
-              <Avatar className="h-24 w-24 ring-4 ring-background shadow-md">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          
+          {/* ── LEFT COLUMN: Identity Card ───────────────────────────────── */}
+          <Card className="md:col-span-1 overflow-hidden border-primary/10 shadow-sm">
+            <div className="h-24 w-full bg-gradient-to-br from-emerald-500/80 to-teal-700"></div>
+            
+            <CardContent className="pt-0 relative flex flex-col items-center text-center">
+              <Avatar className="h-24 w-24 ring-4 ring-background shadow-md -mt-12 mb-4 transition-all">
                 <AvatarFallback className="text-3xl font-semibold bg-primary text-primary-foreground">
                   {getInitials(userData.name)}
                 </AvatarFallback>
               </Avatar>
 
-              {/* Name & Role */}
-              <div className="flex flex-col items-center gap-2">
-                <CardTitle className="text-2xl tracking-tight">{userData.name}</CardTitle>
-                <Badge variant={roleBadgeVariant[userData.role?.toLowerCase()] ?? "outline"} className="capitalize">
-                  <Shield className="mr-1 h-3 w-3" />
-                  {userData.role}
-                </Badge>
-              </div>
-            </CardHeader>
+              <CardTitle className="text-2xl tracking-tight mb-2">{userData.name}</CardTitle>
+              <Badge variant={roleBadgeVariant[userData.role?.toLowerCase()] ?? "outline"} className="capitalize mb-6">
+                <Shield className="mr-1 h-3 w-3" />
+                {userData.role} Account
+              </Badge>
 
-            <Separator />
-
-            {/* ── Detail rows ─────────────────────────────────────────────── */}
-            <CardContent className="py-6 space-y-4">
-              {/* Email row */}
-              <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/50 px-4 py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground font-medium">Email address</p>
-                    <p className="text-sm font-medium truncate">{userData.email}</p>
-                  </div>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={copyEmail}>
-                      {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                      <span className="sr-only">Copy email</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{isCopied ? "Copied!" : "Copy email"}</TooltipContent>
-                </Tooltip>
-              </div>
-
-              {/* Role row */}
-              <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-3">
-                <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Account Role</p>
-                  <p className="text-sm font-medium capitalize">{userData.role}</p>
+              <div className="w-full space-y-3">
+                <div className="flex items-center justify-between text-sm p-3 bg-muted/30 rounded-lg border">
+                  <span className="flex items-center text-muted-foreground">
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    Joined
+                  </span>
+                  <span className="font-medium">{userData.joinedAt}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* ── Action buttons & Dialogs ────────────────────────────────────────────── */}
-          <div className="flex gap-3">
+          {/* ── RIGHT COLUMN: Details & Settings ────────────────────────── */}
+          <div className="md:col-span-2 space-y-6">
             
-            {/* EDIT PROFILE DIALOG */}
-            <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-              <Button className="flex-1" variant="default" onClick={() => setIsProfileDialogOpen(true)}>
-                Edit Profile
-              </Button>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Edit Profile</DialogTitle>
-                  <DialogDescription>Update your personal information.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4 mt-4">
-                  <Controller
-                    name="name" control={profileForm.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor={field.name}>Full Name</FieldLabel>
-                        <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-                  <Controller
-                    name="email" control={profileForm.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                        <Input {...field} id={field.name} type="email" aria-invalid={fieldState.invalid} />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-                  <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving ? "Saving..." : "Save changes"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            {/* Personal Information Section (INLINE EDITING) */}
+            <Card className="shadow-sm transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <User2 className="h-5 w-5 text-muted-foreground" />
+                    Personal Information
+                  </CardTitle>
+                  <CardDescription>Your contact details and identity.</CardDescription>
+                </div>
+                {!isEditingProfile && (
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="py-6">
+                {isEditingProfile ? (
+                  // --- EDIT MODE ---
+                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <Controller
+                      name="name" control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor={field.name}>Full Name</FieldLabel>
+                          <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
+                          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                        </Field>
+                      )}
+                    />
+                    <Controller
+                      name="email" control={profileForm.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor={field.name}>Email Address</FieldLabel>
+                          <Input {...field} id={field.name} type="email" aria-invalid={fieldState.invalid} />
+                          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                        </Field>
+                      )}
+                    />
+                    <div className="flex justify-end gap-3 pt-2">
+                      <Button type="button" variant="ghost" onClick={handleCancelEdit} disabled={isSaving}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={isSaving}>
+                        {isSaving ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  // --- VIEW MODE ---
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="p-2 bg-primary/10 rounded-full shrink-0">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground font-medium mb-0.5">Full Name</p>
+                          <p className="text-sm font-medium truncate">{userData.name}</p>
+                        </div>
+                      </div>
+                    </div>
 
-            {/* CHANGE PASSWORD DIALOG */}
-            <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
-              <Button className="flex-1" variant="outline" onClick={() => setIsPasswordDialogOpen(true)}>
-                Change Password
-              </Button>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Change Password</DialogTitle>
-                  <DialogDescription>Enter your current password and choose a new one.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 mt-4">
-                  <Controller
-                    name="currentPassword" control={passwordForm.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor={field.name}>Current Password</FieldLabel>
-                        <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-                  <Controller
-                    name="newPassword" control={passwordForm.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor={field.name}>New Password</FieldLabel>
-                        <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-                  <Controller
-                    name="confirmPassword" control={passwordForm.control}
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor={field.name}>Confirm New Password</FieldLabel>
-                        <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
-                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                      </Field>
-                    )}
-                  />
-                  <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving ? "Updating..." : "Update Password"}
-                    </Button>
+                    <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="p-2 bg-primary/10 rounded-full shrink-0">
+                          <Mail className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground font-medium mb-0.5">Email address</p>
+                          <p className="text-sm font-medium truncate">{userData.email}</p>
+                        </div>
+                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={copyEmail}>
+                            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                            <span className="sr-only">Copy email</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isCopied ? "Copied!" : "Copy email"}</TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Security Section (UNCHANGED) */}
+            <Card className="shadow-sm border-destructive/10">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-muted-foreground" />
+                    Security
+                  </CardTitle>
+                  <CardDescription>Manage your password and authentication.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="py-6 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Account Password</p>
+                  <p className="text-xs text-muted-foreground mt-1">Ensure your account is using a long, random password to stay secure.</p>
+                </div>
+                <Button variant="secondary" onClick={() => setIsPasswordDialogOpen(true)}>
+                  Change Password
+                </Button>
+              </CardContent>
+            </Card>
 
           </div>
         </div>
+
+        {/* ── Dialogs ─────────────────────────── */}
+        
+        {/* Profile Dialog REMOVED */}
+
+        {/* Change Password Dialog REMAINS */}
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Password</DialogTitle>
+              <DialogDescription>Enter your current password and choose a new one.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 mt-4">
+              <Controller
+                name="currentPassword" control={passwordForm.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Current Password</FieldLabel>
+                    <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                name="newPassword" control={passwordForm.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>New Password</FieldLabel>
+                    <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                name="confirmPassword" control={passwordForm.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Confirm New Password</FieldLabel>
+                    <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? "Updating..." : "Update Password"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </TooltipProvider>
   );

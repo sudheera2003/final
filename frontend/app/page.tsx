@@ -16,6 +16,10 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Banknote,
+  Star,
+  ChefHat,
+  ArrowRight,
+  Download,
 } from "lucide-react";
 import {
   LineChart,
@@ -64,6 +68,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 // --- TYPES ---
 type PredictionData = {
   date: string;
@@ -78,10 +84,17 @@ type InventoryItem = {
   low_stock_threshold: number;
   supplier: string;
 };
+type InsightsData = {
+  top_products: { name: string; sold_last_7_days: number }[];
+  predicted_products: { name: string; qty: number }[];
+  prep_list: { ingredient: string; qty: number; unit: string }[];
+};
 
 export default function DashboardPage() {
   const [chartData, setChartData] = useState<PredictionData[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
+  const [insights, setInsights] = useState<InsightsData | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"7" | "30">("30");
 
@@ -99,11 +112,14 @@ export default function DashboardPage() {
       }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [predictRes, invRes] = await Promise.all([
+      const [predictRes, invRes, insightsRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/predict/all`, {
           headers,
         }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/inventory`, {
+          headers,
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/predict/insights`, {
           headers,
         }),
       ]);
@@ -117,11 +133,13 @@ export default function DashboardPage() {
         return;
       }
 
-      if (predictRes.ok && invRes.ok) {
+      if (predictRes.ok && invRes.ok && insightsRes.ok) {
         const pData = await predictRes.json();
         const iData = await invRes.json();
+        const insData = await insightsRes.json();
 
         setChartData(pData);
+        setInsights(insData);
 
         const depleted = iData.filter(
           (item: InventoryItem) =>
@@ -139,6 +157,80 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // --- NATIVE EXPORT FUNCTION ---
+  const exportToCSV = (filename: string, headers: string[], data: any[][]) => {
+    if (!data || data.length === 0) {
+      toast.error("No data available to export.");
+      return;
+    }
+
+    // Safely wrap text in quotes to avoid breaking columns if names have commas
+    const csvRows = [headers, ...data]
+      .map((row) =>
+        row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+
+    const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${filename}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`${filename} downloaded successfully!`);
+  };
+
+  const handleExportRestock = () => {
+    const headers = [
+      "Ingredient",
+      "Current Stock",
+      "Unit",
+      "Threshold Limit",
+      "Supplier",
+      "Status",
+    ];
+    const data = lowStockItems.map((item) => [
+      item.name,
+      item.stock,
+      item.unit,
+      item.low_stock_threshold || 10,
+      item.supplier || "Unassigned",
+      "Reorder Required",
+    ]);
+    exportToCSV(
+      `Smart_Restock_Alerts_${new Date().toISOString().split("T")[0]}`,
+      headers,
+      data,
+    );
+  };
+
+  const handleExportOrders = () => {
+    const headers = ["Predicted Product", "Expected Order Quantity"];
+    const data =
+      insights?.predicted_products?.map((prod) => [prod.name, prod.qty]) || [];
+    exportToCSV(
+      `Tomorrows_Expected_Orders_${new Date().toISOString().split("T")[0]}`,
+      headers,
+      data,
+    );
+  };
+
+  const handleExportPrepList = () => {
+    const headers = ["Ingredient Required", "Total Quantity Needed", "Unit"];
+    const data =
+      insights?.prep_list?.map((ing) => [ing.ingredient, ing.qty, ing.unit]) ||
+      [];
+    exportToCSV(
+      `Tomorrows_Master_Prep_List_${new Date().toISOString().split("T")[0]}`,
+      headers,
+      data,
+    );
+  };
 
   // --- SUMMARY METRICS ---
   const past7DaysActual = chartData
@@ -173,15 +265,14 @@ export default function DashboardPage() {
     todayPredicted > 0 ? (dailyVariance / todayPredicted) * 100 : 0;
   const tomorrowTrend = tomorrowPredicted - todayPredicted;
 
-  // ROFIT MATH
-  const PROFIT_MARGIN = 0.65; // 65% Standard Restaurant Gross Profit Margin
+  const PROFIT_MARGIN = 0.65;
   const past7DaysProfit = past7DaysActual * PROFIT_MARGIN;
   const todayProfit = todayActual * PROFIT_MARGIN;
 
   const filteredChartData =
     timeRange === "7" ? chartData.slice(-14) : chartData;
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border border-border p-3 rounded-lg shadow-lg">
@@ -197,7 +288,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
   };
 
-  // --- COLUMNS DEFINITION ---
   const columns: ColumnDef<InventoryItem>[] = [
     {
       accessorKey: "name",
@@ -228,9 +318,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       header: "Threshold",
       cell: ({ row }) => {
         const item = row.original;
-
         const thresholdLimit = item.low_stock_threshold || 10;
-
         return (
           <div className="text-muted-foreground">
             {thresholdLimit} {item.unit}
@@ -260,7 +348,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     },
   ];
 
-  // --- TABLE INITIALIZATION ---
   const table = useReactTable({
     data: lowStockItems,
     columns,
@@ -271,9 +358,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     getFilteredRowModel: getFilteredRowModel(),
     state: { sorting, globalFilter },
     onGlobalFilterChange: setGlobalFilter,
-    initialState: {
-      pagination: { pageSize: 5 }, // Keep it small so it doesn't take over the whole dashboard
-    },
+    initialState: { pagination: { pageSize: 5 } },
   });
 
   if (isLoading) {
@@ -289,8 +374,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
   return (
     <div className="p-6 space-y-6">
-      {/* TOP CARDS (Now 4 Columns) */}
+      {/* 1. TOP METRICS */}
       <div className="grid gap-4 md:grid-cols-4">
+        {/* Row 1 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -308,7 +394,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </CardContent>
         </Card>
 
-        {/* NEW CARD: PAST 7 DAYS PROFIT */}
         <Card className="bg-emerald-500/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -346,7 +431,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 {growth >= 0 ? "+" : ""}
                 {growth.toFixed(1)}%
               </span>
-              <span className="text-muted-foreground font-normal">
+              <span className="text-muted-foreground font-normal ml-1">
                 vs past 7 days
               </span>
             </p>
@@ -375,10 +460,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </p>
           </CardContent>
         </Card>
-      </div>
 
-      {/* DAILY PERFORMANCE INSIGHTS (Now 4 Columns) */}
-      <div className="grid gap-4 md:grid-cols-4">
+        {/* Row 2 */}
         <Card className="bg-muted/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -402,7 +485,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </CardContent>
         </Card>
 
-        {/* NEW CARD: TODAY'S PROFIT */}
         <Card className="bg-emerald-500/10 border-emerald-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -479,267 +561,353 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         </Card>
       </div>
 
-      {/* THE ML PREDICTION CHART */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between pb-4">
-          <div>
-            <CardTitle>Revenue Forecast</CardTitle>
-            <CardDescription>
-              {timeRange === "7" 
-                ? "Recent 7-day historical trend combined with a 7-day predictive forward-look."
-                : "Comprehensive 30-day historical analysis for weekly seasonality."}
-            </CardDescription>
-          </div>
-
-          <div className="flex bg-muted/50 p-1 rounded-md border">
-            <button
-              onClick={() => setTimeRange("7")}
-              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${timeRange === "7" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              7 Days
-            </button>
-            <button
-              onClick={() => setTimeRange("30")}
-              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${timeRange === "30" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              30 Days
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[400px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={filteredChartData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#333"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => {
-                    const d = new Date(val);
-                    return `${d.getMonth() + 1}/${d.getDate()}`;
-                  }}
-                />
-                <YAxis 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  // Changed $ to Rs.
-                  tickFormatter={(value) => `LKR. ${value}`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend verticalAlign="top" height={36} />
-
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  name="Actual Revenue"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={false}
-                  activeDot={{ r: 6 }}
-                  connectNulls={true}
-                />
-
-                <Line
-                  type="monotone"
-                  dataKey="predicted"
-                  name="AI Prediction"
-                  stroke="#8b5cf6"
-                  strokeWidth={3}
-                  strokeDasharray="5 5"
-                  dot={false}
-                  connectNulls={true}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* SMART RESTOCK LIST (TANSTACK TABLE) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Smart Restock List</CardTitle>
-          <CardDescription>
-            Automated alerts for depleted ingredients based on your custom
-            thresholds.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* SEARCH & COLUMNS TOOLBAR */}
-          <div className="flex items-center justify-between pb-4">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search alerts..."
-                value={globalFilter ?? ""}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-8 w-[250px]"
-              />
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Columns className="mr-2 h-4 w-4" /> Columns
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id === "name" ? "Ingredient" : column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* DATA TABLE */}
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="hover:bg-transparent"
+      {/* 2. MAIN CONTENT SPLIT */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+        {/* LEFT COLUMN */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between pb-4">
+              <div>
+                <CardTitle>Revenue Forecast (Facebook Prophet)</CardTitle>
+                <CardDescription>
+                  {timeRange === "7"
+                    ? "Recent 7-day historical trend combined with a 7-day predictive forward-look."
+                    : "Comprehensive 30-day historical analysis for weekly seasonality."}
+                </CardDescription>
+              </div>
+              <div className="flex bg-muted/50 p-1 rounded-md border">
+                <button
+                  onClick={() => setTimeRange("7")}
+                  className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${timeRange === "7" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  7 Days
+                </button>
+                <button
+                  onClick={() => setTimeRange("30")}
+                  className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${timeRange === "30" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  30 Days
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px] w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={filteredChartData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className="text-muted-foreground font-medium h-10"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Inventory is healthy. No items currently require
-                      restocking.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#333"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) => {
+                        const d = new Date(val);
+                        return `${d.getMonth() + 1}/${d.getDate()}`;
+                      }}
+                    />
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `LKR. ${value}`}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="top" height={36} />
+                    <Line
+                      type="monotone"
+                      dataKey="actual"
+                      name="Actual Revenue"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6 }}
+                      connectNulls={true}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="predicted"
+                      name="AI Prediction"
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      dot={false}
+                      connectNulls={true}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* PAGINATION */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground pt-4">
-            <div>
-              Showing {table.getRowModel().rows.length} of{" "}
-              {lowStockItems.length} alerts.
-            </div>
-            <div className="flex items-center space-x-6 lg:space-x-8">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium">Rows per page</p>
-                <select
-                  value={table.getState().pagination.pageSize}
-                  onChange={(e) => table.setPageSize(Number(e.target.value))}
-                  className="h-8 rounded-md border border-input bg-background px-2"
+          {/* SMART RESTOCK LIST + EXPORT BUTTON */}
+          <Card className="flex flex-col flex-1">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0">
+              <div>
+                <CardTitle>Smart Restock List</CardTitle>
+                <CardDescription>
+                  Automated alerts for depleted ingredients based on your custom
+                  thresholds.
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleExportRestock}>
+                <Download className="mr-2 h-4 w-4" /> Export
+              </Button>
+            </CardHeader>
+            <CardContent className="flex flex-col flex-1">
+              <div className="flex items-center justify-between pb-4">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search alerts..."
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="pl-8 w-[250px]"
+                  />
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Columns className="mr-2 h-4 w-4" /> Columns
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {table
+                      .getAllColumns()
+                      .filter((column) => column.getCanHide())
+                      .map((column) => {
+                        return (
+                          <DropdownMenuCheckboxItem
+                            key={column.id}
+                            className="capitalize"
+                            checked={column.getIsVisible()}
+                            onCheckedChange={(value) =>
+                              column.toggleVisibility(!!value)
+                            }
+                          >
+                            {column.id === "name" ? "Ingredient" : column.id}
+                          </DropdownMenuCheckboxItem>
+                        );
+                      })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow
+                        key={headerGroup.id}
+                        className="hover:bg-transparent"
+                      >
+                        {headerGroup.headers.map((header) => (
+                          <TableHead
+                            key={header.id}
+                            className="text-muted-foreground font-medium h-10"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="py-3">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length}
+                          className="h-24 text-center text-muted-foreground"
+                        >
+                          Inventory is healthy. No items currently require
+                          restocking.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground pt-4 mt-auto">
+                <div>
+                  Showing {table.getRowModel().rows.length} of{" "}
+                  {lowStockItems.length} alerts.
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">Go to previous page</span>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <span className="sr-only">Go to next page</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="lg:col-span-1 flex flex-col gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-(--primary)">
+                 Top 3 Trending (Past 7 Days)
+              </CardTitle>
+              <CardDescription>
+                Most popular items ordered this week
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {insights?.top_products?.map((prod, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between pb-2 border-b last:border-0 last:pb-0"
                 >
-                  {[5, 10, 20].map((pageSize) => (
-                    <option key={pageSize} value={pageSize}>
-                      {pageSize}
-                    </option>
+                  <span className="font-semibold text-sm">{prod.name}</span>
+                  <span className="text-sm font-medium bg-muted px-2 py-0.5 rounded">
+                    {prod.sold_last_7_days} sold
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* EXPECTED ORDERS + EXPORT BUTTON */}
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2 text-purple-500">
+                  Tomorrow's Expected Orders
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  AI prediction for all products expected to sell
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={handleExportOrders}
+                title="Export to Excel/CSV"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[300px] pr-4">
+                <div className="space-y-2">
+                  {insights?.predicted_products?.map((prod, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between text-sm py-1.5 border-b border-muted last:border-0"
+                    >
+                      <span className="font-medium text-foreground">
+                        {prod.name}
+                      </span>
+                      <span className="font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
+                        {prod.qty} orders
+                      </span>
+                    </div>
                   ))}
-                </select>
+                  {!insights?.predicted_products?.length && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      No significant sales predicted.
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* MASTER PREP LIST + EXPORT BUTTON */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                  Tomorrow's Master Prep List
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Total ingredients needed to fulfill the entire forecast
+                </CardDescription>
               </div>
-              <div className="flex items-center justify-center text-sm font-medium">
-                Page {table.getState().pagination.pageIndex + 1} of{" "}
-                {table.getPageCount() || 1}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => table.setPageIndex(0)}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <span className="sr-only">Go to first page</span>
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <span className="sr-only">Go to previous page</span>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  <span className="sr-only">Go to next page</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                  disabled={!table.getCanNextPage()}
-                >
-                  <span className="sr-only">Go to last page</span>
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary hover:bg-primary/20"
+                onClick={handleExportPrepList}
+                title="Export to Excel/CSV"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[300px] pr-4">
+                <div className="space-y-2">
+                  {insights?.prep_list?.map((ing, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between text-sm py-1.5 border-b border-primary/10 last:border-0"
+                    >
+                      <span className="font-medium text-foreground">
+                        {ing.ingredient}
+                      </span>
+                      <span className="font-bold text-primary">
+                        {ing.qty}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {ing.unit}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                  {!insights?.prep_list?.length && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      No prep required.
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

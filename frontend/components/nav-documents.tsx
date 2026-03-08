@@ -159,7 +159,8 @@ export function NavDocuments({
                       id="password" 
                       type={showPassword ? "text" : "password"} 
                       value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Password" 
                       required 
                       className="pr-10"
                     />
@@ -182,7 +183,8 @@ export function NavDocuments({
                       type={showConfirmPassword ? "text" : "password"} 
                       value={confirmPassword} 
                       onChange={(e) => setConfirmPassword(e.target.value)} 
-                      required 
+                      required
+                      placeholder="Confirm Password" 
                       className="pr-10"
                     />
                     <button
