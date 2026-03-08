@@ -163,16 +163,16 @@ export default function ProductsPage() {
       });
       
       if (res.ok) {
-        toast.success(`Product ${isEdit ? "updated" : "created"}!`);
+        toast.success(`Product ${isEdit ? "updated" : "created"}`);
         setIsAddDialogOpen(false);
         setIsEditDialogOpen(false);
         fetchData(); 
       } else {
         const err = await res.json();
-        toast.error(err.error || "Operation failed.");
+        toast.error(err.error || "Operation failed");
       }
     } catch (err) {
-      toast.error("Network error.");
+      toast.error("Network error");
     }
   };
 
@@ -215,7 +215,7 @@ export default function ProductsPage() {
       });
       
       if (res.ok) {
-        toast.success("Menu products updated successfully!");
+        toast.success("Menu products updated successfully");
         setIsUploadDialogOpen(false); 
         setFiles([]); 
         fetchData(); 
@@ -224,7 +224,7 @@ export default function ProductsPage() {
         toast.error(err.error || "Upload failed");
       }
     } catch (err) {
-      toast.error("Failed to process Excel file.");
+      toast.error("Failed to process Excel file");
     } finally {
       setUploading(false); 
     }

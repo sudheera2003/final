@@ -124,7 +124,7 @@ export default function SalesPage() {
   // --- HANDLERS ---
   const handleRecordSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProductId || saleQuantity < 1) return toast.error("Select a product and valid quantity.");
+    if (!selectedProductId || saleQuantity < 1) return toast.error("Select a product and valid quantity");
 
     setIsProcessing(true);
     try {
@@ -136,12 +136,12 @@ export default function SalesPage() {
       });
       
       if (res.ok) {
-        toast.success("Sale recorded & inventory deducted!");
+        toast.success("Sale recorded & inventory deducted");
         setSelectedProductId("");
         setSaleQuantity(1);
         fetchData(); 
       } else {
-        toast.error("Failed to record sale.");
+        toast.error("Failed to record sale");
       }
     } catch (err) {
       toast.error("Network error.");
@@ -167,7 +167,7 @@ export default function SalesPage() {
       });
       
       if (res.ok) {
-        toast.success("Sales imported & inventory perfectly synced!");
+        toast.success("Sales imported & inventory perfectly synced");
         setIsUploadDialogOpen(false); 
         setFiles([]); 
         fetchData(); 
@@ -176,7 +176,7 @@ export default function SalesPage() {
         toast.error(err.error || "Upload failed");
       }
     } catch (err) {
-      toast.error("Failed to process Excel file.");
+      toast.error("Failed to process Excel file");
     } finally {
       setUploading(false); 
     }

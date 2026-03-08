@@ -167,7 +167,7 @@ export default function ProfilePage() {
       toast.success("Profile updated!");
       setIsEditingProfile(false); // Close edit mode on success
     } catch (error: any) {
-      toast.error(error.message || "Could not update profile.");
+      toast.error(error.message || "Could not update profile");
     } finally {
       setIsSaving(false);
     }
@@ -190,7 +190,7 @@ export default function ProfilePage() {
       setIsPasswordDialogOpen(false);
       passwordForm.reset();
     } catch (error: any) {
-      toast.error(error.message || "Could not change password.");
+      toast.error(error.message || "Could not change password");
     } finally {
       setIsSaving(false);
     }

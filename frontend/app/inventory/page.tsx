@@ -131,12 +131,12 @@ export default function InventoryPage() {
         setFiles([]); 
         fetchData(); 
       } else if (res.status === 401) {
-         toast.error("Session expired. Please log in again.");
+         toast.error("Session expired. Please log in again");
       } else {
         throw new Error("Upload failed");
       }
     } catch (err) {
-      toast.error("Failed to process Excel file.");
+      toast.error("Failed to process Excel file");
     } finally {
       setUploading(false); 
     }
@@ -149,7 +149,7 @@ export default function InventoryPage() {
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) return toast.error("You must be logged in to add items.");
+      if (!token) return toast.error("You must be logged in to add items");
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/inventory`, {
         method: "POST",
@@ -166,10 +166,10 @@ export default function InventoryPage() {
         fetchData(); 
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Failed to add ingredient.");
+        toast.error(errorData.error || "Failed to add ingredient");
       }
     } catch (err) {
-      toast.error("Network error while adding ingredient.");
+      toast.error("Network error while adding ingredient");
     }
   };
 
@@ -206,7 +206,7 @@ export default function InventoryPage() {
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) return toast.error("You must be logged in to edit items.");
+      if (!token) return toast.error("You must be logged in to edit items");
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/inventory/${editingItem._id}`, {
         method: "PUT",
@@ -223,10 +223,10 @@ export default function InventoryPage() {
         fetchData(); 
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Failed to update ingredient.");
+        toast.error(errorData.error || "Failed to update ingredient");
       }
     } catch (err) {
-      toast.error("Network error while updating ingredient.");
+      toast.error("Network error while updating ingredient");
     }
   };
 

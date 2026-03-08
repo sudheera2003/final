@@ -125,7 +125,7 @@ export default function DashboardPage() {
       ]);
 
       if (predictRes.status === 401 || invRes.status === 401) {
-        toast.error("Session expired. Please log in again.");
+        toast.error("Session expired. Please log in again");
         localStorage.removeItem("token");
         localStorage.removeItem("email");
         localStorage.removeItem("name");
@@ -148,7 +148,7 @@ export default function DashboardPage() {
         setLowStockItems(depleted);
       }
     } catch (error) {
-      toast.error("Failed to load dashboard data.");
+      toast.error("Failed to load dashboard data");
     } finally {
       setIsLoading(false);
     }
@@ -161,7 +161,7 @@ export default function DashboardPage() {
   // --- NATIVE EXPORT FUNCTION ---
   const exportToCSV = (filename: string, headers: string[], data: any[][]) => {
     if (!data || data.length === 0) {
-      toast.error("No data available to export.");
+      toast.error("No data available to export");
       return;
     }
 
@@ -182,7 +182,7 @@ export default function DashboardPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(`${filename} downloaded successfully!`);
+    toast.success(`${filename} downloaded successfully`);
   };
 
   const handleExportRestock = () => {

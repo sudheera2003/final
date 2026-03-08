@@ -61,7 +61,7 @@ export default function ChatbotPage() {
       });
 
       if (res.status === 401) {
-        toast.error("Session expired. Please log in again.");
+        toast.error("Session expired. Please log in again");
         window.location.href = "/login";
         return;
       }
@@ -71,10 +71,10 @@ export default function ChatbotPage() {
       if (res.ok) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
       } else {
-        toast.error(data.error || "Failed to get AI response.");
+        toast.error(data.error || "Failed to get AI response");
       }
     } catch (error) {
-      toast.error("Network error communicating with AI.");
+      toast.error("Network error communicating with AI");
     } finally {
       setIsLoading(false);
     }

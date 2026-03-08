@@ -40,7 +40,7 @@ export default function HelpPage() {
     e.preventDefault();
     
     if (!description.trim()) {
-      toast.error("Please enter a description for your issue.");
+      toast.error("Please enter a description for your issue");
       return;
     }
 
@@ -49,7 +49,7 @@ export default function HelpPage() {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        toast.error("You must be logged in to submit a ticket.");
+        toast.error("You must be logged in to submit a ticket");
         return;
       }
 
@@ -66,7 +66,7 @@ export default function HelpPage() {
       });
 
       if (res.status === 401) {
-        toast.error("Session expired. Please log in again.");
+        toast.error("Session expired. Please log in again");
         localStorage.removeItem("token");
         window.location.href = "/login";
         return;
@@ -75,14 +75,14 @@ export default function HelpPage() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Ticket submitted! The administrator has been notified.");
+        toast.success("Ticket submitted! The administrator has been notified");
         setDescription(""); // Clear the text area on success
         setIssueType("Bug Report"); // Reset dropdown
       } else {
-        toast.error(data.error || "Failed to submit ticket.");
+        toast.error(data.error || "Failed to submit ticket");
       }
     } catch (error) {
-      toast.error("Network error. Please try again later.");
+      toast.error("Network error. Please try again later");
     } finally {
       setIsSubmitting(false);
     }

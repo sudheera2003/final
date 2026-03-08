@@ -81,7 +81,7 @@ export const columns: ColumnDef<User>[] = [
         const token = localStorage.getItem("token")
 
         if (!token) {
-            toast.error("You are not logged in!")
+            toast.error("You are not logged in")
             return
         }
 
