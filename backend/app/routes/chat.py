@@ -31,9 +31,7 @@ def chat_with_ai():
         if not current_key:
             return jsonify({"error": "AI configuration missing."}), 500
 
-        # ==========================================
-        # STEP 1: GATHER LIVE MONGODB CONTEXT (Same logic)
-        # ==========================================
+        # ATHER LIVE MONGODB CONTEXT (Same logic)
         low_stock_cursor = db.inventory.find({"$expr": {"$lte": ["$stock", "$low_stock_threshold"]}})
         low_stock_items = [f"{item['name']} ({item['stock']} {item.get('unit', 'units')} left)" for item in low_stock_cursor]
         low_stock_text = ", ".join(low_stock_items) if low_stock_items else "All inventory levels are healthy."
@@ -50,9 +48,7 @@ def chat_with_ai():
         top_3_items = [f"{item['_id']} ({item['total_sold']} sold)" for item in recent_sales[:3]]
         top_items_text = ", ".join(top_3_items) if top_3_items else "No recent sales."
 
-        # ==========================================
-        # STEP 2: CONSTRUCT THE PROMPT
-        # ==========================================
+        # CONSTRUCT THE PROMPT
         # We combine system instructions and context into one clear prompt for the 'Flash' model
         full_prompt = f"""
         System: You are 'RestoAI', the management assistant for Lady Hill Hotel, Galle. 
@@ -66,9 +62,7 @@ def chat_with_ai():
         User Question: {user_message}
         """
 
-        # ==========================================
-        # STEP 3: EXECUTE WITH STABLE CONFIG
-        # ==========================================
+        # EXECUTE WITH STABLE CONFIG
         genai.configure(api_key=current_key)
         
         # Try a few different model variations to find the one available in your region
