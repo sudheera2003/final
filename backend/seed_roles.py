@@ -30,6 +30,11 @@ permissions_blueprint = [
     {"id": "edit_products", "label": "Edit Products", "parent_id": "view_products", "description": "Update product info"},
     {"id": "delete_products", "label": "Delete Products", "parent_id": "view_products", "description": "Remove products"},
     
+    # Tickets Group
+    {"id": "manage_tickets", "label": "Manage Support Tickets", "parent_id": None, "description": "Manage support tickets"},
+    {"id": "edit_ticket_status", "label": "Edit Ticket Status", "parent_id": "manage_tickets", "description": "Update the status of support tickets"},
+    {"id": "delete_tickets", "label": "Delete Support Tickets", "parent_id": "manage_tickets", "description": "Permanently remove support tickets"},
+    
     # Standalone Groups
     {"id": "user_management", "label": "User Management", "parent_id": None, "description": "Manage staff accounts"},
     {"id": "manage_roles", "label": "Permission Management", "parent_id": None, "description": "Configure access control"}
@@ -40,7 +45,7 @@ super_admin_perms = [
     "view_sales", "show_revenue", "show_profit_margins",
     "view_inventory", "add_inventory", "edit_inventory", "delete_inventory",
     "view_products", "add_products", "edit_products", "delete_products",
-    "user_management", "use_ai_chat", "manage_roles"
+    "user_management", "use_ai_chat", "manage_roles", "manage_tickets", "edit_ticket_status", "delete_tickets"
 ]
 
 admin_perms = [

@@ -11,8 +11,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+// --- NEW IMPORTS FOR ALERT DIALOG ---
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { useState, useEffect } from "react" // <--- Import React hooks!
+import { useState, useEffect } from "react"
 
 export type User = {
   _id: string
@@ -71,13 +82,13 @@ export const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const user = row.original
       
-      // --- THE FIX: Use React state to grab the role safely on the client side ---
       const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+      // --- NEW: State to control the Alert Dialog ---
+      const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
       useEffect(() => {
         setCurrentUserRole(localStorage.getItem("role"))
       }, [])
-      // -------------------------------------------------------------------------
 
       const handleDelete = async () => {
         const token = localStorage.getItem("token")
@@ -100,6 +111,7 @@ export const columns: ColumnDef<User>[] = [
 
             if (res.ok) {
                 toast.success("User deleted successfully")
+                setShowDeleteAlert(false) // Close the modal on success
             } else {
                 toast.error(data.error || "Failed to delete user")
             }
@@ -110,33 +122,58 @@ export const columns: ColumnDef<User>[] = [
       }
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.email)}>
-              <Copy className="mr-2 h-4 w-4" />
-              Copy Email
-            </DropdownMenuItem>
-          
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.email)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy Email
+              </DropdownMenuItem>
+            
               <>
                 <DropdownMenuSeparator />
+                {/* --- UPDATED: Trigger state instead of direct delete --- */}
                 <DropdownMenuItem 
-                    onClick={handleDelete}
+                    onSelect={() => setShowDeleteAlert(true)}
                     className="text-red-600 focus:text-red-600 cursor-pointer"
                 >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete User
                 </DropdownMenuItem>
               </>
-            
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* --- NEW: The Alert Dialog rendered alongside the Dropdown --- */}
+          <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete 
+                  <span className="font-semibold text-foreground"> {user.name}'s </span> 
+                  account and remove their access to the system.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDelete}
+                  className="bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )
     },
   },

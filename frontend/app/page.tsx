@@ -367,6 +367,7 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p>Running AI Forecasting Models...</p>
+          <p>(This may take a few moments)</p>
         </div>
       </div>
     );
@@ -394,7 +395,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-emerald-500/5">
+        <Card className="bg-cyan-500/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Past 7 Days Profit
@@ -402,7 +403,7 @@ export default function DashboardPage() {
             <Banknote className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">
+            <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-500">
               LKR.{past7DaysProfit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -485,7 +486,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-emerald-500/10 border-emerald-500/20">
+        <Card className="bg-cyan-500/10 border-cyan-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Today's Profit
@@ -493,7 +494,7 @@ export default function DashboardPage() {
             <Banknote className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">
+            <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-500">
               LKR.{todayProfit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -510,11 +511,11 @@ export default function DashboardPage() {
             {variancePercentage >= 0 ? (
               <TrendingUp className="h-4 w-4 text-green-500" />
             ) : (
-              <TrendingDown className="h-4 w-4 text-amber-500" />
+              <TrendingDown className="h-4 w-4 text-red-500" />
             )}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-500">
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-500">
               LKR.{todayPredicted.toFixed(2)}
             </div>
             <p className="text-xs mt-1 flex items-center gap-1 font-medium">
@@ -539,9 +540,9 @@ export default function DashboardPage() {
               Tomorrow's Forecast Revenue
             </CardTitle>
             {tomorrowTrend >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-primary" />
+              <TrendingUp className="h-4 w-4 text-green-500" />
             ) : (
-              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              <TrendingDown className="h-4 w-4 text-red-500" />
             )}
           </CardHeader>
           <CardContent>
@@ -626,7 +627,7 @@ export default function DashboardPage() {
                       type="monotone"
                       dataKey="actual"
                       name="Actual Revenue"
-                      stroke="#10b981"
+                      stroke="teal"
                       strokeWidth={3}
                       dot={false}
                       activeDot={{ r: 6 }}
@@ -636,7 +637,7 @@ export default function DashboardPage() {
                       type="monotone"
                       dataKey="predicted"
                       name="AI Prediction"
-                      stroke="#8b5cf6"
+                      stroke="#FF5252"
                       strokeWidth={3}
                       dot={false}
                       connectNulls={true}
@@ -817,7 +818,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
               <div>
-                <CardTitle className="text-lg flex items-center gap-2 text-purple-500">
+                <CardTitle className="text-lg flex items-center gap-2 text-orange-500">
                   Tomorrow's Expected Orders
                 </CardTitle>
                 <CardDescription className="mt-1">
@@ -848,7 +849,7 @@ export default function DashboardPage() {
                       <span className="font-medium text-foreground">
                         {prod.name}
                       </span>
-                      <span className="font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
+                      <span className="font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded">
                         {prod.qty} orders
                       </span>
                     </div>

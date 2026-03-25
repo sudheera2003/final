@@ -193,7 +193,7 @@ export default function HelpPage() {
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between border-b border-primary/10 pb-2">
                 <span className="text-muted-foreground">Version</span>
-                <span className="font-medium">1.0.0 (Release Candidate)</span>
+                <span className="font-medium">1.0.0</span>
               </div>
               <div className="flex justify-between border-b border-primary/10 pb-2">
                 <span className="text-muted-foreground">Core Module</span>
@@ -227,6 +227,7 @@ export default function HelpPage() {
                     <option value="Bug Report">Bug Report</option>
                     <option value="Inventory Discrepancy">Inventory Discrepancy</option>
                     <option value="Feature Request">Feature Request</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div className="space-y-2">

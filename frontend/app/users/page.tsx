@@ -84,6 +84,12 @@ export default function UsersPage() {
 
   return (
     <div className="container mx-auto py-10">
+      <div className="flex items-center gap-3 border-b pb-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">All Users</h1>
+          <p className="text-muted-foreground mt-1">View and manage all users in the system.</p>
+        </div>
+      </div>
       <DataTable columns={columns} data={data} />
     </div>
   )
