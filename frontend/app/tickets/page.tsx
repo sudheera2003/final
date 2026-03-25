@@ -35,7 +35,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-// --- NEW IMPORTS FOR ALERT DIALOG ---
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +45,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+// --- 1. IMPORT SECURITY HOOK ---
+import { usePermissions } from "@/hooks/use-permissions";
 
 type SupportTicket = {
   _id: string;
@@ -62,13 +64,14 @@ export default function AdminTicketsPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // --- Modal States ---
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // --- NEW: Delete Alert States ---
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
+
+  // --- 2. INITIALIZE HOOK ---
+  const { hasPermission } = usePermissions();
 
   const fetchTickets = async () => {
     setIsLoading(true);
@@ -125,7 +128,6 @@ export default function AdminTicketsPage() {
     }
   };
 
-  // --- UPDATED: Delete Handler for the Alert Dialog ---
   const handleConfirmDelete = async () => {
     if (!ticketToDelete) return;
     
@@ -178,6 +180,11 @@ export default function AdminTicketsPage() {
         if (ticket.status === "In Progress") colorClass = "text-blue-600 bg-blue-500/10 border-blue-500/20";
         if (ticket.status === "Resolved") colorClass = "text-green-600 bg-green-500/10 border-green-500/20";
 
+        // --- 3. SECURE STATUS DROPDOWN ---
+        if (!hasPermission("edit_ticket_status")) {
+          return <Badge variant="outline" className={`font-normal ${colorClass}`}>{ticket.status}</Badge>;
+        }
+
         return (
           <div onClick={(e) => e.stopPropagation()}>
             <Select 
@@ -197,13 +204,13 @@ export default function AdminTicketsPage() {
         );
       },
     },
-    {
+    // --- 4. SECURE DELETE COLUMN ---
+    ...(hasPermission("delete_tickets") ? [{
       id: "delete",
       header: () => <div className="">Action</div>,
-      cell: ({ row }) => {
+      cell: ({ row }: { row: any }) => {
         return (
           <div className="">
-            {/* --- UPDATED: Trigger the Alert Dialog State --- */}
             <Button
               variant="ghost"
               size="icon"
@@ -219,7 +226,7 @@ export default function AdminTicketsPage() {
           </div>
         );
       },
-    }
+    }] : [])
   ];
 
   const table = useReactTable({
@@ -374,7 +381,7 @@ export default function AdminTicketsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- NEW: Delete Alert Dialog --- */}
+      {/* --- Delete Alert Dialog --- */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
