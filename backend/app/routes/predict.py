@@ -7,6 +7,9 @@ from app.extensions import db
 from datetime import datetime, timedelta
 from bson.objectid import ObjectId
 
+# --- NEW: Import the cache you set up in __init__.py ---
+from app import cache 
+
 # Suppress Prophet logging so it doesn't spam your terminal
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
@@ -14,6 +17,7 @@ predict_bp = Blueprint('predict', __name__)
 
 @predict_bp.route('/<target>', methods=['GET'])
 @jwt_required()
+@cache.cached(timeout=3600) # <-- Caches the 7-day revenue forecast for 1 hour
 def get_prediction(target):
     try:
         if target == 'all':
@@ -62,6 +66,7 @@ def get_prediction(target):
 
 @predict_bp.route('/insights', methods=['GET'])
 @jwt_required()
+@cache.cached(timeout=3600) # <-- Caches the massive item-by-item loop for 1 hour
 def get_insights():
     try:
         # 1. Get Top 3 Trending Products (Past 7 Days ONLY)

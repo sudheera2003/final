@@ -4,14 +4,14 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
-# 1. Load the environment variables from your .env file
+# 1. Load the environment variables from .env file
 load_dotenv()
 
 # 2. Get the MongoDB URI
 mongo_uri = os.getenv("MONGO_URI")
 
 if not mongo_uri:
-    print("Error: MONGO_URI not found in .env file. Please check your .env file.")
+    print("Error: MONGO_URI not found in .env file.")
     exit()
 
 print("Connecting to database...")

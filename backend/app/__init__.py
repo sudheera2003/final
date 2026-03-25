@@ -2,7 +2,16 @@ import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+from flask_caching import Cache  
 from app.extensions import socketio, bcrypt, jwt
+
+# Explicitly load environment variables from .env file
+load_dotenv()
+
+# --- 1. DEFINE CACHE FIRST (Before importing routes!) ---
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 3600})
+
+# --- 2. NOW IMPORT ROUTES ---
 from app.routes.auth import auth_bp
 from app.routes.dashboard import dashboard_bp
 from app.routes.inventory import inventory_bp
@@ -13,51 +22,36 @@ from app.routes.chat import chat_bp
 from app.routes.tickets import tickets_bp
 
 
-# Explicitly load environment variables from .env file
-load_dotenv()
-
 def create_app():
     app = Flask(__name__)
     
-    # --- 1. CONFIGURATION ---
-    # Load keys from .env, with fallbacks for safety
+    # --- 3. CONFIGURATION ---
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev_secret")
     app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "jwt_secret")
     app.config['MONGO_URI'] = os.getenv("MONGO_URI")
 
-    # --- 2. DEFINE ALLOWED ORIGINS ---
-    # This list allows your frontend to connect from ANY of these locations
+    # --- 4. DEFINE ALLOWED ORIGINS ---
     allowed_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://final-backend-bsn2.onrender.com",
-        
-        
-        #Vercel URL here:
         "https://final-nowkqafnm-dilums-projects-d5e83860.vercel.app", 
         "https://final-nowkqafnm.vercel.app",
         "https://final-inky-iota.vercel.app",
         "https://final-inky-iota.vercel.app/"
     ]
 
-    # --- 3. INITIALIZE PLUGINS ---
-    
-    # Enable CORS for standard HTTP requests (Login, Register, Dashboard data)
-    
-    # Enable CORS for standard HTTP requests (Login, Register, Dashboard data)
+    # --- 5. INITIALIZE PLUGINS ---
     CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
     bcrypt.init_app(app)
     jwt.init_app(app)
-
-    # Enable SocketIO for Real-Time updates (Sidebar, User Table)
-    # cors_allowed_origins must match the list above
-
-    # Enable SocketIO for Real-Time updates (Sidebar, User Table)
-    # cors_allowed_origins must match the list above
     socketio.init_app(app, cors_allowed_origins=allowed_origins)
 
-    # --- 4. ROUTES ---
+    # Bind the cache to your Flask app
+    cache.init_app(app)
+
+    # --- 6. ROUTES ---
     @app.route('/api/health')
     def health():
         return jsonify({

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   SidebarGroup, 
   SidebarGroupLabel, 
@@ -15,21 +15,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
-  UserPlus, 
-  Loader2, 
-  Eye, 
-  EyeOff, 
-  Users 
-} from "lucide-react"
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
+import { UserPlus, Loader2, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+
+// --- Define the Role Type ---
+type RoleOption = {
+  value: string;
+  label: string;
+};
 
 export function NavDocuments({
   items,
@@ -40,24 +46,52 @@ export function NavDocuments({
     icon: React.ReactNode
   }[]
 }) {
-  // State for the Dialog and Form
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   
-  // Form States
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   
-  // Password Visibility States
+  // --- NEW: Dynamic Roles State ---
+  const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([])
+  const [role, setRole] = useState("") 
+  
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  // --- NEW: Fetch Roles on Load ---
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/roles`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableRoles(data);
+          
+          // Default to the safest role (usually the last one in the list, like 'user')
+          if (data.length > 0) {
+            setRole(data[data.length - 1].value);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch available roles", error);
+      }
+    };
+
+    fetchRoles();
+  }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 1. Basic Validation
     if (password !== confirmPassword) {
       toast.error("Passwords do not match")
       return
@@ -66,30 +100,29 @@ export function NavDocuments({
     setLoading(true)
 
     try {
-      // 2. Send Data to Backend
-      // We manually add role: "admin" here as requested
+      const token = localStorage.getItem("token")
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          name, 
-          email, 
-          password,
-          role: "admin" // <--- Default role set here
-        }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify({ name, email, password, role }),
       })
 
       const data = await res.json()
 
       if (res.ok) {
         toast.success(`User "${name}" created successfully`)
-        setOpen(false) // Close dialog
+        setOpen(false) 
         
-        // Reset Form
         setName("")
         setEmail("")
         setPassword("")
         setConfirmPassword("")
+        // Reset to default role
+        if (availableRoles.length > 0) setRole(availableRoles[availableRoles.length - 1].value);
       } else {
         toast.error(data.error || "Failed to create user")
       }
@@ -107,7 +140,6 @@ export function NavDocuments({
       <SidebarGroupLabel>User Management</SidebarGroupLabel>
       <SidebarMenu>
         
-        {/* --- 1. THE "ADD NEW USER" DIALOG ITEM --- */}
         <SidebarMenuItem>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -119,14 +151,14 @@ export function NavDocuments({
             
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Add New Admin</DialogTitle>
+                <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Create a new user with admin privileges. They can log in immediately.
+                  Create a new user and assign their access level.
                 </DialogDescription>
               </DialogHeader>
               
               <form onSubmit={handleCreateUser} className="grid gap-4 py-4">
-                {/* Name */}
+                
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input 
@@ -138,7 +170,6 @@ export function NavDocuments({
                   />
                 </div>
 
-                {/* Email */}
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input 
@@ -151,7 +182,23 @@ export function NavDocuments({
                   />
                 </div>
 
-                {/* Password */}
+                {/* --- UPDATED: Dynamic Role Dropdown --- */}
+                <div className="grid gap-2">
+                  <Label>Account Role</Label>
+                  <Select value={role} onValueChange={setRole} disabled={availableRoles.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
@@ -174,7 +221,6 @@ export function NavDocuments({
                   </div>
                 </div>
 
-                {/* Confirm Password */}
                 <div className="grid gap-2">
                   <Label htmlFor="confirm">Confirm Password</Label>
                   <div className="relative">
@@ -198,7 +244,7 @@ export function NavDocuments({
                 </div>
 
                 <div className="ml-auto mt-2">
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading || !role}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -214,11 +260,9 @@ export function NavDocuments({
           </Dialog>
         </SidebarMenuItem>
 
-        {/* --- 2. RENDER OTHER ITEMS NORMALLY --- */}
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild isActive={pathname === item.url}
-            >
+            <SidebarMenuButton asChild isActive={pathname === item.url}>
               <Link href={item.url}>
                 {item.icon}
                 <span>{item.name}</span>
