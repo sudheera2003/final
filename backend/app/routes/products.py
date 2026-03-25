@@ -8,11 +8,15 @@ import tempfile
 import pandas as pd
 from pymongo import UpdateOne
 
+# --- IMPORT THE PERMISSION DECORATOR ---
+from app.routes.auth import requires_permission
+
 products_bp = Blueprint('products', __name__)
 
 # 1. GET ALL PRODUCTS
 @products_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required()
+@requires_permission('view_products') # <-- Locked: View Only
 def get_products():
     try:
         items = list(db.products.find())
@@ -25,6 +29,7 @@ def get_products():
 # 2. ADD PRODUCT & RECIPE
 @products_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
+@requires_permission('add_products') # <-- Locked: Add Only
 def add_product():
     data = request.get_json()
     
@@ -46,6 +51,7 @@ def add_product():
 # 3. UPDATE PRODUCT
 @products_bp.route('/<product_id>', methods=['PUT'])
 @jwt_required()
+@requires_permission('edit_products') # <-- Locked: Edit Only
 def update_product(product_id):
     data = request.get_json()
     
@@ -74,6 +80,7 @@ def update_product(product_id):
 # 4. DELETE PRODUCT
 @products_bp.route('/<product_id>', methods=['DELETE'])
 @jwt_required()
+@requires_permission('delete_products') # <-- Locked: Delete Only
 def delete_product(product_id):
     try:
         result = db.products.delete_one({"_id": product_id})
@@ -93,6 +100,7 @@ def delete_product(product_id):
 # 5. BULK IMPORT PRODUCTS & RECIPES VIA EXCEL
 @products_bp.route('/bulk-import', methods=['POST'])
 @jwt_required()
+@requires_permission('add_products') # <-- Locked: Bulk Add
 def bulk_import():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400

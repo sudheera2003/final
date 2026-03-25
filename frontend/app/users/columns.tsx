@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
+import { useState, useEffect } from "react" // <--- Import React hooks!
 
 export type User = {
   _id: string
@@ -21,15 +22,6 @@ export type User = {
 }
 
 export const columns: ColumnDef<User>[] = [
-  // --- ID COLUMN ---
-//   {
-//     accessorKey: "_id",
-//     header: "ID",
-//     cell: ({ row }) => <div className="w-[80px] truncate">{row.getValue("_id")}</div>,
-//     enableSorting: false,
-//     enableHiding: true,
-//   },
-
   // --- NAME COLUMN ---
   {
     accessorKey: "name",
@@ -58,26 +50,36 @@ export const columns: ColumnDef<User>[] = [
     header: "Role",
     cell: ({ row }) => {
         const role = row.getValue("role") as string
+        
+        // Define badge colors based on the role
+        let badgeColor = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+        if (role === 'admin') badgeColor = "bg-red-500/10 text-red-600 dark:text-red-400"
+        if (role === 'super_admin') badgeColor = "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
+        if (role === 'user') badgeColor = "bg-green-500/10 text-green-600 dark:text-green-400"
+
         return (
-             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                role === 'admin' 
-                  ? 'bg-primary/10 text-primary' 
-                  : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-              }`}>
-                {role}
+             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium uppercase ${badgeColor}`}>
+                {role.replace('_', ' ')}
               </span>
         )
     }
   },
 
-  // --- ACTIONS COLUMN (Fixed Delete Logic) ---
+  // --- ACTIONS COLUMN ---
   {
     id: "actions",
     cell: ({ row }) => {
       const user = row.original
- 
+      
+      // --- THE FIX: Use React state to grab the role safely on the client side ---
+      const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+
+      useEffect(() => {
+        setCurrentUserRole(localStorage.getItem("role"))
+      }, [])
+      // -------------------------------------------------------------------------
+
       const handleDelete = async () => {
-        // 1. Get the token FRESH right when you click delete
         const token = localStorage.getItem("token")
 
         if (!token) {
@@ -89,8 +91,8 @@ export const columns: ColumnDef<User>[] = [
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/${user._id}`, {
                 method: "DELETE",
                 headers: { 
-                    "Content-Type": "application/json", // Good practice
-                    "Authorization": `Bearer ${token}`  // <--- CRITICAL LINE
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` 
                 }
             })
             
@@ -98,7 +100,6 @@ export const columns: ColumnDef<User>[] = [
 
             if (res.ok) {
                 toast.success("User deleted successfully")
-                // Note: The WebSocket will handle the page refresh automatically!
             } else {
                 toast.error(data.error || "Failed to delete user")
             }
@@ -122,14 +123,18 @@ export const columns: ColumnDef<User>[] = [
               <Copy className="mr-2 h-4 w-4" />
               Copy Email
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-red-600 focus:text-red-600 cursor-pointer"
-            >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete User
-            </DropdownMenuItem>
+          
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                    onClick={handleDelete}
+                    className="text-red-600 focus:text-red-600 cursor-pointer"
+                >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete User
+                </DropdownMenuItem>
+              </>
+            
           </DropdownMenuContent>
         </DropdownMenu>
       )

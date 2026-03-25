@@ -13,12 +13,7 @@ import {
   Columns,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Banknote,
-  Star,
-  ChefHat,
-  ArrowRight,
   Download,
 } from "lucide-react";
 import {
@@ -70,6 +65,9 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// --- 1. IMPORT YOUR NEW SECURITY HOOK ---
+import { usePermissions } from "@/hooks/use-permissions";
+
 // --- TYPES ---
 type PredictionData = {
   date: string;
@@ -101,6 +99,9 @@ export default function DashboardPage() {
   // --- TABLE STATES ---
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+
+  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  const { hasPermission } = usePermissions();
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -165,7 +166,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // Safely wrap text in quotes to avoid breaking columns if names have commas
     const csvRows = [headers, ...data]
       .map((row) =>
         row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","),
@@ -657,9 +657,12 @@ export default function DashboardPage() {
                   thresholds.
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={handleExportRestock}>
-                <Download className="mr-2 h-4 w-4" /> Export
-              </Button>
+              {/* --- SECURED: ONLY SHOW IF THEY HAVE DOWNLOAD PERMISSION --- */}
+              {hasPermission("download_sales_files") && (
+                <Button variant="outline" size="sm" onClick={handleExportRestock}>
+                  <Download className="mr-2 h-4 w-4" /> Export
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="flex flex-col flex-1">
               <div className="flex items-center justify-between pb-4">
@@ -821,15 +824,18 @@ export default function DashboardPage() {
                   AI prediction for all products expected to sell
                 </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                onClick={handleExportOrders}
-                title="Export to Excel/CSV"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              {/* --- SECURED: ONLY SHOW IF THEY HAVE DOWNLOAD PERMISSION --- */}
+              {hasPermission("download_sales_files") && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={handleExportOrders}
+                  title="Export to Excel/CSV"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[300px] pr-4">
@@ -868,15 +874,18 @@ export default function DashboardPage() {
                   Total ingredients needed to fulfill the entire forecast
                 </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-primary hover:bg-primary/20"
-                onClick={handleExportPrepList}
-                title="Export to Excel/CSV"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              {/* --- SECURED: ONLY SHOW IF THEY HAVE DOWNLOAD PERMISSION --- */}
+              {hasPermission("download_sales_files") && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-primary hover:bg-primary/20"
+                  onClick={handleExportPrepList}
+                  title="Export to Excel/CSV"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[300px] pr-4">

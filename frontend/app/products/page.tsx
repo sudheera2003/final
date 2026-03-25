@@ -48,6 +48,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileUpload } from "@/components/file-upload";
 
+// --- 1. IMPORT YOUR SECURITY HOOK ---
+import { usePermissions } from "@/hooks/use-permissions";
+
 // --- TYPES ---
 export type Ingredient = { _id: string; name: string; unit: string; unit_price: number; };
 export type RecipeItem = { ingredient_id: string; qty: number; tempId?: number };
@@ -77,6 +80,9 @@ export default function ProductsPage() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  const { hasPermission } = usePermissions();
 
   // --- FETCH DATA ---
   const fetchData = async () => {
@@ -281,40 +287,47 @@ export default function ProductsPage() {
         );
       },
     },
-    {
+    // --- SECURED: ONLY RENDER ACTIONS IF THEY CAN EDIT OR DELETE ---
+    ...(hasPermission("edit_products") || hasPermission("delete_products") ? [{
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
-      cell: ({ row }) => {
+      cell: ({ row }: { row: any }) => {
         const item = row.original;
         return (
           <div className="flex items-center gap-2 justify-center">
-            <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)} className="text-muted-foreground hover:text-green-600 dark:hover:text-green-400 hover:bg-muted">
-              <Pencil className="h-4 w-4" />
-            </Button>
+            {/* SECURED: EDIT BUTTON */}
+            {hasPermission("edit_products") && (
+              <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)} className="text-muted-foreground hover:text-green-600 dark:hover:text-green-400 hover:bg-muted">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete <span className="font-semibold text-foreground">{item.name}</span> from your menu.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDelete(item._id)} className="bg-red-600 text-white hover:bg-red-700">Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/* SECURED: DELETE BUTTON */}
+            {hasPermission("delete_products") && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete <span className="font-semibold text-foreground">{item.name}</span> from your menu.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete(item._id)} className="bg-red-600 text-white hover:bg-red-700">Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   // --- TABLE INITIALIZATION ---
@@ -435,33 +448,36 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-            {/* UPLOAD DIALOG */}
-          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Upload className="mr-2 h-4 w-4" /> Import Excel
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Upload Menu & Recipes</DialogTitle>
-                <DialogDescription>
-                  Drag and drop your Excel file. Ensure columns match: product_name, category, price, ingredient_name, qty.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="grid gap-4 py-4">
-                <FileUpload onFilesChange={setFiles} />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleConfirmUpload} disabled={files.length === 0 || uploading}>
-                  {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : "Confirm Upload"}
+          {/* SECURED: UPLOAD DIALOG (Requires add_products) */}
+          {hasPermission("add_products") && (
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="mr-2 h-4 w-4" /> Import Excel
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Upload Menu & Recipes</DialogTitle>
+                  <DialogDescription>
+                    Drag and drop your Excel file. Ensure columns match: product_name, category, price, ingredient_name, qty.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 py-4">
+                  <FileUpload onFilesChange={setFiles} />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleConfirmUpload} disabled={files.length === 0 || uploading}>
+                    {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</> : "Confirm Upload"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -482,21 +498,20 @@ export default function ProductsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          
+          {/* SECURED: ADD DIALOG (Requires add_products) */}
+          {hasPermission("add_products") && (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={openAddDialog}><Plus className="mr-2 h-4 w-4" /> Create Product</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>Recipe & Pricing Builder</DialogTitle></DialogHeader>
+                {renderProductForm(false)}
+              </DialogContent>
+            </Dialog>
+          )}
 
-          {/* ADD DIALOG */}
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog}><Plus className="mr-2 h-4 w-4" /> Create Product</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Recipe & Pricing Builder</DialogTitle></DialogHeader>
-              {renderProductForm(false)}
-            </DialogContent>
-          </Dialog>
-
-
-          {/* EDIT DIALOG */}
+          {/* EDIT DIALOG (Called from actions column, so button is already hidden if no perm) */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader><DialogTitle>Edit Product Recipe</DialogTitle></DialogHeader>
@@ -506,7 +521,6 @@ export default function ProductsPage() {
         </div>
       </div>
       
-
       {/* DATA TABLE */}
       <div className="rounded-md border overflow-hidden">
         <Table>

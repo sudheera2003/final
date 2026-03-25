@@ -1,6 +1,7 @@
 import os
 import tempfile
 import pandas as pd
+from app.routes.auth import requires_permission # <-- Fixed import path
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from pymongo import UpdateOne
@@ -13,6 +14,7 @@ inventory_bp = Blueprint('inventory', __name__)
 # 1. GET ALL INGREDIENTS
 @inventory_bp.route('', methods=['GET'], strict_slashes=False)
 @jwt_required()
+@requires_permission('view_inventory') # <-- Locked: View Only
 def get_inventory():
     try:
         items = list(db.inventory.find())
@@ -22,9 +24,11 @@ def get_inventory():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 # 2. ADD SINGLE INGREDIENT
 @inventory_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
+@requires_permission('add_inventory') # <-- Locked: Add Only
 def add_ingredient():
     data = request.get_json()
     if db.inventory.find_one({"name": data.get("name")}):
@@ -46,9 +50,11 @@ def add_ingredient():
     socketio.emit('inventory_changed', {"message": "New item added"})
     return jsonify({"message": "Ingredient added successfully"}), 201
 
+
 # 3. BULK IMPORT / UPDATE VIA EXCEL
 @inventory_bp.route('/bulk-import', methods=['POST'])
 @jwt_required()
+@requires_permission('add_inventory') # <-- Locked: Bulk Add
 def bulk_import():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
@@ -62,9 +68,8 @@ def bulk_import():
             temp_path = temp.name
 
         df = pd.read_excel(temp_path)
-        df.columns = df.columns.str.strip().str.lower() # Clean column names
+        df.columns = df.columns.str.strip().str.lower() 
 
-        # Require at least name and stock columns in Excel
         if not {'name', 'stock'}.issubset(df.columns):
             return jsonify({"error": "Excel must contain 'name' and 'stock' columns"}), 400
 
@@ -73,10 +78,6 @@ def bulk_import():
             name = str(row['name']).strip()
             added_stock = float(row['stock'])
             
-            # Upsert logic: 
-            # $inc increases the stock.
-            # $set forcefully updates the threshold and timestamp every time.
-            # $setOnInsert only runs if the item is brand new.
             bulk_operations.append(
                 UpdateOne(
                     {"name": name},
@@ -114,12 +115,11 @@ def bulk_import():
 # 4. DELETE INGREDIENT
 @inventory_bp.route('/<item_id>', methods=['DELETE'])
 @jwt_required()
+@requires_permission('delete_inventory') # <-- Locked: Delete Only
 def delete_ingredient(item_id):
     try:
-        # Delete by ObjectId or string ID (since seed_db uses string IDs)
         result = db.inventory.delete_one({"_id": item_id})
         
-        # If it wasn't found as a string, try it as an ObjectId
         if result.deleted_count == 0:
             result = db.inventory.delete_one({"_id": ObjectId(item_id)})
             
@@ -136,6 +136,7 @@ def delete_ingredient(item_id):
 # 5. EDIT/UPDATE INGREDIENT
 @inventory_bp.route('/<item_id>', methods=['PUT'])
 @jwt_required()
+@requires_permission('edit_inventory') # <-- Locked: Edit Only
 def update_ingredient(item_id):
     data = request.get_json()
     
@@ -147,7 +148,7 @@ def update_ingredient(item_id):
         "unit": data.get("unit"),
         "unit_price": float(data.get("unit_price", 0)),
         "supplier": data.get("supplier"),
-        "low_stock_threshold": float(data.get("low_stock_threshold", 10)), # Added fallback here too
+        "low_stock_threshold": float(data.get("low_stock_threshold", 10)),
         "lastUpdated": datetime.now()
     }
 

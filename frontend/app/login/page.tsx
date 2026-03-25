@@ -33,9 +33,31 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("email", data.email);
         localStorage.setItem("name", data.name);
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("permissions", JSON.stringify(data.permissions));
 
         toast.success("Login Success");
-        window.location.href = "/";
+
+        // --- SMART ROUTING ---
+        const perms = data.permissions || [];
+        let targetUrl = "/"; // Default assumption
+
+        // If they CANNOT see the dashboard, find the first page they CAN see
+        if (!perms.includes("view_dashboard")) {
+          if (perms.includes("view_sales")) {
+            targetUrl = "/sales";
+          } else if (perms.includes("view_inventory")) {
+            targetUrl = "/inventory";
+          } else if (perms.includes("view_products")) {
+            targetUrl = "/products";
+          } else if (perms.includes("use_ai_chat")) {
+            targetUrl = "/chat";
+          } else {
+            targetUrl = "/help"; // fallback if user have almost no permissions
+          }
+        }
+
+        window.location.href = targetUrl;
       } else {
         toast.error(data.error || "Invalid Credentials");
       }
@@ -49,7 +71,7 @@ export default function LoginPage() {
   return (
     <div className="w-full min-h-screen flex bg-background">
       
-{/* ── LEFT SIDE: Brand & Hero (Hidden on Mobile) ── */}
+      {/* ── LEFT SIDE: Brand & Hero (Hidden on Mobile) ── */}
       <div className="relative hidden w-1/2 flex-col bg-muted/30 p-10 text-foreground dark:bg-zinc-950 dark:text-white lg:flex justify-between overflow-hidden border-r">
         
         {/* Abstract Background Gradients */}
@@ -66,10 +88,9 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-20 mt-auto pb-12 space-y-4">
-          
           <p className="text-lg leading-relaxed max-w-md text-muted-foreground dark:text-zinc-300">
             System Administration
-           </p>
+          </p>
         </div>
       </div>
 
@@ -163,4 +184,4 @@ export default function LoginPage() {
 
     </div>
   );
-} 
+}

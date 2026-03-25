@@ -5,22 +5,49 @@ import { User, columns } from "./columns"
 import { DataTable } from "./data-table"
 import { Loader2 } from "lucide-react"
 import { useSocket } from "@/hooks/use-socket"
+import { toast } from "sonner"
 
 export default function UsersPage() {
   const [data, setData] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
-  const socket = useSocket() // <--- Initialize Socket
+  const socket = useSocket() 
 
   // 1. Fetch Initial Data
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users`)
+        const token = localStorage.getItem("token")
+        
+        if (!token) {
+          window.location.href = "/login"
+          return
+        }
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // <--- THE MISSING PIECE!
+          }
+        })
+        
+        if (res.status === 401) {
+          toast.error("Session expired. Please log in again.")
+          window.location.href = "/login"
+          return
+        }
+
         const result = await res.json()
-        setData(result)
+        
+        if (res.ok) {
+          setData(result)
+        } else {
+          toast.error(result.error || "Failed to fetch users")
+        }
       } catch (error) {
         console.error("Failed to fetch users", error)
+        toast.error("Network error while loading users")
       } finally {
         setLoading(false)
       }
@@ -35,14 +62,12 @@ export default function UsersPage() {
     // EVENT: User Created
     socket.on("user_created", (newUser: User) => {
       console.log("New User Created:", newUser)
-      // Add new user to the list
       setData((prev) => [...prev, newUser])
     })
 
     // EVENT: User Deleted
     socket.on("user_deleted", (data: { _id: string }) => {
       console.log("User Deleted:", data._id)
-      // Remove user from the list
       setData((prev) => prev.filter((user) => user._id !== data._id))
     })
 
@@ -54,7 +79,7 @@ export default function UsersPage() {
   }, [socket])
 
   if (loading) {
-    return <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin" /></div>
+    return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
   }
 
   return (

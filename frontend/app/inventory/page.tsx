@@ -47,6 +47,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileUpload } from "@/components/file-upload"; 
 
+// --- 1. IMPORT YOUR SECURITY HOOK ---
+import { usePermissions } from "@/hooks/use-permissions";
+
 // --- TYPES ---
 export type Ingredient = {
   _id: string;
@@ -74,6 +77,9 @@ export default function InventoryPage() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  const { hasPermission } = usePermissions();
 
   // --- FETCH DATA ---
   const fetchData = async () => {
@@ -246,7 +252,7 @@ export default function InventoryPage() {
         </Badge>
       ),
     },
-{
+    {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
@@ -293,56 +299,63 @@ export default function InventoryPage() {
       accessorKey: "supplier",
       header: "Reviewer (Supplier)",
     },
-    {
+    // --- SECURED: ONLY RENDER ACTIONS IF THEY CAN EDIT OR DELETE ---
+    ...(hasPermission("edit_inventory") || hasPermission("delete_inventory") ? [{
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
-      cell: ({ row }) => {
+      cell: ({ row }: { row: any }) => {
         const item = row.original;
         return (
           <div className="flex items-center gap-2 justify-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => handleEdit(item)}
-              className="text-muted-foreground hover:text-green-600 dark:hover:text-green-400 hover:bg-muted"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            {/* SECURED: EDIT BUTTON */}
+            {hasPermission("edit_inventory") && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleEdit(item)}
+                className="text-muted-foreground hover:text-green-600 dark:hover:text-green-400 hover:bg-muted"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete 
-                    <span className="font-semibold text-foreground"> {item.name} </span> 
-                    from your inventory and servers.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => handleDelete(item._id)}
-                    className="bg-red-600 text-white hover:bg-red-700"
+            {/* SECURED: DELETE BUTTON */}
+            {hasPermission("delete_inventory") && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-muted"
                   >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete 
+                      <span className="font-semibold text-foreground"> {item.name} </span> 
+                      from your inventory and servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => handleDelete(item._id)}
+                      className="bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   // --- TABLE INITIALIZATION ---
@@ -376,46 +389,48 @@ export default function InventoryPage() {
 
         <div className="flex items-center gap-2">
 
-          {/* UPLOAD DIALOG */}
-          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Upload className="mr-2 h-4 w-4" /> Import Excel
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Upload Excel Data</DialogTitle>
-                <DialogDescription>
-                  Drag and drop your Excel file here to update the inventory stock.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="grid gap-4 py-4">
-                <FileUpload onFilesChange={setFiles} />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
-                  Cancel
+          {/* SECURED: UPLOAD DIALOG (Needs 'add_inventory' since bulk-import adds items) */}
+          {hasPermission("add_inventory") && (
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Upload className="mr-2 h-4 w-4" /> Import Excel
                 </Button>
-                
-                <Button 
-                  onClick={handleConfirmUpload} 
-                  disabled={files.length === 0 || uploading}
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    "Confirm Upload"
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Upload Excel Data</DialogTitle>
+                  <DialogDescription>
+                    Drag and drop your Excel file here to update the inventory stock.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 py-4">
+                  <FileUpload onFilesChange={setFiles} />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleConfirmUpload} 
+                    disabled={files.length === 0 || uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      "Confirm Upload"
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -439,62 +454,64 @@ export default function InventoryPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* ADD DIALOG */}
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Add Section
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Ingredient</DialogTitle>
-                <DialogDescription>Manually add a new item to the inventory.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddIngredient} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Name</label>
-                  <Input name="name" placeholder="Ingredient Name" required />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Category</label>
-                  <Input name="category" placeholder="Category (e.g., Meat, Dairy)" required />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+          {/* SECURED: ADD DIALOG */}
+          {hasPermission("add_inventory") && (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" /> Add Section
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Ingredient</DialogTitle>
+                  <DialogDescription>Manually add a new item to the inventory.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddIngredient} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">Initial Stock</label>
-                    <Input name="stock" type="number" step="0.01" placeholder="Current Stock" required />
+                    <label className="text-sm font-medium text-foreground">Name</label>
+                    <Input name="name" placeholder="Ingredient Name" required />
                   </div>
+                  
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">Unit</label>
-                    <Input name="unit" placeholder="Unit (e.g., kg, pcs)" required />
+                    <label className="text-sm font-medium text-foreground">Category</label>
+                    <Input name="category" placeholder="Category (e.g., Meat, Dairy)" required />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Initial Stock</label>
+                      <Input name="stock" type="number" step="0.01" placeholder="Current Stock" required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Unit</label>
+                      <Input name="unit" placeholder="Unit (e.g., kg, pcs)" required />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Unit Price (LKR)</label>
+                      <Input name="unit_price" type="number" step="0.01" placeholder="Unit Price (LKR)" required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-foreground">Low Stock Alert</label>
+                      <Input name="low_stock_threshold" type="number" step="0.01" placeholder="Alert if stock falls below..." required defaultValue="20" />
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">Unit Price (LKR)</label>
-                    <Input name="unit_price" type="number" step="0.01" placeholder="Unit Price (LKR)" required />
+                    <label className="text-sm font-medium text-foreground">Supplier</label>
+                    <Input name="supplier" placeholder="Supplier Name" required />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-foreground">Low Stock Alert</label>
-                    <Input name="low_stock_threshold" type="number" step="0.01" placeholder="Alert if stock falls below..." required defaultValue="20" />
-                  </div>
-                </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Supplier</label>
-                  <Input name="supplier" placeholder="Supplier Name" required />
-                </div>
+                  <Button type="submit" className="w-full mt-2">Save Item</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
 
-                <Button type="submit" className="w-full mt-2">Save Item</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* EDIT DIALOG */}
+          {/* EDIT DIALOG (Does not need to be wrapped, as the button to open it is inside the secured column) */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent>
               <DialogHeader>

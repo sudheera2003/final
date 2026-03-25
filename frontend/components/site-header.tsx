@@ -13,6 +13,10 @@ export function SiteHeader() {
     // Normalizing the path to handle trailing slashes or sub-routes if needed
     if (path === "/") return "Dashboard"
     if (path === "/users") return "User Management"
+    if (path === "/roles") return "Permission Management"
+    if (path === "/sales") return "Sales Overview"
+    if (path === "/inventory") return "Inventory Management"
+    if (path === "/products") return "Product Catalog"
     
     // Fallback: Capitalize the first letter of the path segment (e.g. /inventory -> Inventory)
     const segment = path.split("/")[1]

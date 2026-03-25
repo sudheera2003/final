@@ -15,9 +15,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, UserPlus2Icon, UserRoundSearchIcon, List, Box, Menu, Package2, ChartArea, BotMessageSquare } from "lucide-react"
+import { LayoutDashboardIcon, ChartArea, Box, Package2, BotMessageSquare, CircleHelpIcon, UserRoundSearchIcon, ShieldUserIcon, CommandIcon } from "lucide-react"
 import Link from "next/link"
 
+// --- 1. IMPORT YOUR SECURITY HOOK ---
+import { usePermissions } from "@/hooks/use-permissions"
+
+// --- 2. ADD PERMISSION REQUIREMENTS TO EACH ROUTE ---
 const data = {
   user: {
     name: "shadcn",
@@ -28,67 +32,67 @@ const data = {
     {
       title: "Dashboard",
       url: "/",
-      icon: (
-        <LayoutDashboardIcon
-        />
-      ),
+      icon: <LayoutDashboardIcon />,
+      permission: "view_dashboard" // <--- Required Key
     },
-        {
+    {
       title: "Sales",
       url: "/sales",
-      icon: (
-        <ChartArea
-        />
-      ),
+      icon: <ChartArea />,
+      permission: "view_sales"
     },
     {
       title: "Inventory",
       url: "/inventory",
-      icon: (
-        <Box
-        />
-      ),
+      icon: <Box />,
+      permission: "view_inventory"
     },
     {
       title: "Products",
       url: "/products",
-      icon: (
-        <Package2
-        />
-      ),
+      icon: <Package2 />,
+      permission: "view_products"
     },
     {
       title: "Chat-Bot",
       url: "/chat",
-      icon: (
-        <BotMessageSquare
-        />
-      ),
+      icon: <BotMessageSquare />,
+      permission: "use_ai_chat" 
     },
   ],
   navSecondary: [
     {
       title: "Get Help",
       url: "/help",
-      icon: (
-        <CircleHelpIcon
-        />
-      ),
+      icon: <CircleHelpIcon />,
+      // No permission required, visible to everyone
     },
   ],
   documents: [
     {
       name: "All Users",
       url: "/users",
-      icon: (
-        <UserRoundSearchIcon
-        />
-      ),
+      icon: <UserRoundSearchIcon />,
+      permission: "user_management"
+    },
+    {
+      name: "Manage Permissions",
+      url: "/roles",
+      icon: <ShieldUserIcon />,
+      permission: "manage_roles"
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  // --- 3. INITIALIZE HOOK ---
+  const { hasPermission, isLoaded } = usePermissions()
+
+  // --- 4. FILTER THE ARRAYS BEFORE RENDERING ---
+  // If an item has a permission, check if the user has it. If no permission is set, always show it.
+  const filteredNavMain = data.navMain.filter(item => !item.permission || hasPermission(item.permission))
+  const filteredDocuments = data.documents.filter(item => !item.permission || hasPermission(item.permission))
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -107,8 +111,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        {/* Pass the FILTERED arrays down to the components */}
+        <NavMain items={filteredNavMain} />
+        <NavDocuments items={filteredDocuments} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

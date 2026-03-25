@@ -1,22 +1,25 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 from app.extensions import db, bcrypt, socketio
 from bson import ObjectId
 from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
 
-# --- CUSTOM ROLE DECORATOR ---
-# This checks the token to see if the user is allowed to hit the route
-def requires_roles(*allowed_roles):
+# PERMISSION DECORATOR
+def requires_permission(target_permission):
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
+            verify_jwt_in_request() # Ensure user is logged in
             claims = get_jwt()
-            user_role = claims.get("role", "user")
+            user_permissions = claims.get("permissions", [])
             
-            if user_role not in allowed_roles:
-                return jsonify({"error": f"Access denied. Your role ({user_role}) does not have permission."}), 403
+            # Check if the specific permission exists in the user's "Key Ring"
+            if target_permission not in user_permissions:
+                return jsonify({
+                    "error": f"Access denied. You need the '{target_permission}' permission."
+                }), 403
                 
             return fn(*args, **kwargs)
         return decorator
@@ -30,28 +33,39 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
+    # 1. Find the user
     user = db.users.find_one({"email": email})
 
     if user and bcrypt.check_password_hash(user['password'], password):
-        user_role = user.get("role", "user")
+        user_role_name = user.get("role", "user")
         
-        # Inject the role directly into the secure token
+        # 2. NEW: Look up the permissions for this specific role in the 'roles' collection
+        role_data = db.roles.find_one({"role_name": user_role_name})
+        
+        # Fallback to empty list if role isn't found in our new seed data
+        permissions = role_data.get("permissions", []) if role_data else []
+
+        # 3. Inject BOTH role and permissions into the secure JWT token
         access_token = create_access_token(
             identity=email,
-            additional_claims={"role": user_role}
+            additional_claims={
+                "role": user_role_name,
+                "permissions": permissions # <--- Your app's "Keys" are now in the token!
+            }
         )
         
         return jsonify({
             "token": access_token, 
             "email": email,
             "name": user.get("name", "User"),
-            "role": user_role
+            "role": user_role_name,
+            "permissions": permissions # Send to frontend so it can hide/show buttons
         }), 200
     
     return jsonify({"error": "Invalid credentials"}), 401
 
 
-# --- NEW: GET AVAILABLE ROLES ---
+# GET AVAILABLE ROLES
 @auth_bp.route('/roles', methods=['GET'])
 @jwt_required()
 def get_roles():
@@ -64,17 +78,17 @@ def get_roles():
         {"value": "user", "label": "Staff (Normal User)"}
     ]
 
-    # Only add 'Super Admin' to the dropdown if the person requesting it is a Super Admin!
+    # Only add 'Super Admin' to the dropdown if the person requesting it is a Super Admin
     if current_role == 'super_admin':
         available_roles.insert(0, {"value": "super_admin", "label": "Super Admin"})
 
     return jsonify(available_roles), 200
 
 
-# --- REGISTER / ADD USER ROUTE ---
+# REGISTER / ADD USER ROUTE
 @auth_bp.route('/register', methods=['POST'])
 @jwt_required() # Must be logged in
-@requires_roles('super_admin') # <--- CHANGED: ONLY super_admin can create users now!
+@requires_permission('user_management') # <-- permission check
 def register():
     data = request.get_json()
     email = data.get('email')
@@ -110,7 +124,7 @@ def register():
 # --- DELETE USER ROUTE ---
 @auth_bp.route('/users/<user_id>', methods=['DELETE'])
 @jwt_required()
-@requires_roles('super_admin', 'admin') # Lock this down too!
+@requires_permission('user_management')
 def delete_user(user_id):
     current_email = get_jwt_identity()
     claims = get_jwt()
@@ -224,3 +238,34 @@ def change_password():
     )
     
     return jsonify({"message": "Password changed successfully"}), 200
+
+# --- UPDATE ROLE PERMISSIONS ---
+@auth_bp.route('/roles/<role_name>/permissions', methods=['PUT'])
+@jwt_required()
+@requires_permission('manage_roles')
+def update_role_permissions(role_name):
+    data = request.get_json()
+    new_permissions = data.get('permissions')
+
+    if not isinstance(new_permissions, list):
+        return jsonify({"error": "Permissions must be a list"}), 400
+
+    # Update the master rulebook in the 'roles' collection
+    result = db.roles.update_one(
+        {"role_name": role_name},
+        {"$set": {"permissions": new_permissions}}
+    )
+
+    if result.matched_count > 0:
+        return jsonify({"message": f"Permissions for {role_name} updated successfully"}), 200
+    
+    return jsonify({"error": "Role not found"}), 404
+
+#fetch all permissions
+
+@auth_bp.route('/roles_full', methods=['GET'])
+@jwt_required()
+@requires_permission('manage_roles')
+def get_roles_full():
+    roles = list(db.roles.find({}, {"_id": 0}))
+    return jsonify(roles), 200

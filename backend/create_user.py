@@ -38,7 +38,7 @@ def create_admin_user():
         "email": email,
         "password": hashed_password,
         "name": name,
-        "role": "admin",
+        "role": "super_admin",
         "createdAt": datetime.now()
     })
 

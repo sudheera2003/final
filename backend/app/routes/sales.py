@@ -8,11 +8,15 @@ from datetime import datetime
 from pymongo import UpdateOne
 from app.extensions import db, socketio
 
+# --- IMPORT THE PERMISSION DECORATOR ---
+from app.routes.auth import requires_permission
+
 sales_bp = Blueprint('sales', __name__)
 
 # 1. GET ALL SALES (For the Data Table)
 @sales_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required()
+@requires_permission('view_sales') # <-- Locked: View Only
 def get_sales():
     try:
         # Sort by newest first
@@ -27,6 +31,7 @@ def get_sales():
 # 2. RECORD A SINGLE SALE (The Mini-POS)
 @sales_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
+@requires_permission('view_sales') # <-- Using 'view_sales' here as per your initial hierarchy, though 'record_sales' might be better long-term!
 def record_sale():
     data = request.get_json()
     product_id = data.get("product_id")
@@ -82,6 +87,7 @@ def record_sale():
 # 3. BULK UPLOAD SALES (End-of-day Excel File)
 @sales_bp.route('/bulk-import', methods=['POST'])
 @jwt_required()
+@requires_permission('view_sales') # <-- Using 'view_sales' here too.
 def bulk_import():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400

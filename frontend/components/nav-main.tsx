@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Separator } from "./ui/separator"
 
 export function NavMain({
   items,
@@ -23,11 +22,13 @@ export function NavMain({
 }) {
   const pathname = usePathname()
 
+  // Auto-hide the entire group if there are no items they are allowed to see
+  if (items.length === 0) return null;
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Statistics</SidebarGroupLabel>
       <SidebarGroupContent className="flex flex-col gap-2">
-
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>

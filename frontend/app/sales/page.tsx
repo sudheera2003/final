@@ -37,6 +37,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileUpload } from "@/components/file-upload";
 
+// --- 1. IMPORT YOUR SECURITY HOOK ---
+import { usePermissions } from "@/hooks/use-permissions";
+
 // --- TYPES ---
 export type Ingredient = { _id: string; name: string; unit: string; unit_price: number; };
 export type RecipeItem = { ingredient_id: string; qty: number; };
@@ -63,6 +66,9 @@ export default function SalesPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  const { hasPermission } = usePermissions();
+
   // --- FETCH DATA ---
   const fetchData = async () => {
     setIsLoading(true);
@@ -74,7 +80,6 @@ export default function SalesPage() {
       }
       const headers = { "Authorization": `Bearer ${token}` };
       
-      // Fetch all three collections to do the complex math!
       const [salesRes, prodRes, invRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/sales`, { headers }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/products`, { headers }),
@@ -212,10 +217,11 @@ export default function SalesPage() {
       header: "Revenue",
       cell: ({ row }) => <div className="font-bold text-foreground">LKR.{Number(row.getValue("total_price")).toFixed(2)}</div>,
     },
-    {
+    // --- SECURED COLUMN: ONLY SHOW EST. PROFIT IF PERMITTED ---
+    ...(hasPermission("show_profit_margins") ? [{
       id: "profit",
       header: "Est. Profit",
-      cell: ({ row }) => {
+      cell: ({ row }: { row: any }) => {
         const sale = row.original;
         const costToMakeOne = getProductCost(sale.product_id);
         const totalCost = costToMakeOne * sale.quantity;
@@ -228,7 +234,7 @@ export default function SalesPage() {
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   // --- TABLE INITIALIZATION ---
@@ -248,15 +254,21 @@ export default function SalesPage() {
     <div className="p-6 space-y-6">
       
       {/* TOP DASHBOARD CARDS */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
-          <div className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <h3 className="tracking-tight text-sm font-medium">Total Revenue Today</h3>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="text-2xl font-bold">LKR.{totalRevenueToday.toFixed(2)}</div>
-        </div>
+      {/* Dynamically adjust the grid columns based on how many cards are visible */}
+      <div className={`grid gap-4 ${hasPermission("show_revenue") || hasPermission("show_profit_margins") ? "md:grid-cols-3" : "md:grid-cols-1"}`}>
         
+        {/* SECURED: REVENUE CARD */}
+        {hasPermission("show_revenue") && (
+          <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
+            <div className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <h3 className="tracking-tight text-sm font-medium">Total Revenue Today</h3>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="text-2xl font-bold">LKR.{totalRevenueToday.toFixed(2)}</div>
+          </div>
+        )}
+        
+        {/* ALWAYS VISIBLE (Or you could wrap this in view_sales) */}
         <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
           <div className="flex flex-row items-center justify-between pb-2 space-y-0">
             <h3 className="tracking-tight text-sm font-medium">Items Sold Today</h3>
@@ -265,15 +277,18 @@ export default function SalesPage() {
           <div className="text-2xl font-bold">{itemsSoldToday} items</div>
         </div>
 
-        <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
-          <div className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <h3 className="tracking-tight text-sm font-medium">Estimated Profit Today</h3>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+        {/* SECURED: PROFIT CARD */}
+        {hasPermission("show_profit_margins") && (
+          <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
+            <div className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <h3 className="tracking-tight text-sm font-medium">Estimated Profit Today</h3>
+              <TrendingUp className="h-4 w-4 text-green-500" />
+            </div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              +LKR.{totalProfitToday.toFixed(2)}
+            </div>
           </div>
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            +LKR.{totalProfitToday.toFixed(2)}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ACTION BAR: MINI-POS & UPLOAD */}
@@ -285,7 +300,6 @@ export default function SalesPage() {
             <ShoppingCart className="h-5 w-5 text-primary" />
           </div>
           
-          {/* Wrapper for the Select and Clear Button */}
           <div className="flex items-center gap-1 w-full max-w-[340px]">
             <select 
               required
@@ -299,7 +313,6 @@ export default function SalesPage() {
               ))}
             </select>
 
-            {/* The Clear Button (Only shows if something is selected) */}
             {selectedProductId && (
               <Button 
                 type="button" 
