@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { ThemeSwitcher } from "@/components/theme-switcher"
+import { Power } from "lucide-react"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -40,7 +41,7 @@ export function SiteHeader() {
         </h1>
         
         <div className="ml-auto mt-1">
-          <AnimatedThemeToggler />
+          <ThemeSwitcher />
         </div>
       </div>
     </header>

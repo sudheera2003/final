@@ -68,6 +68,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // --- 1. IMPORT YOUR NEW SECURITY HOOK ---
 import { usePermissions } from "@/hooks/use-permissions";
 
+import OrbitDotMotion from "@/components/pixel-perfect/orbit-dot-motion";
+
 // --- TYPES ---
 type PredictionData = {
   date: string;
@@ -365,7 +367,8 @@ export default function DashboardPage() {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          {/* <Loader2 className="h-8 w-8 animate-spin text-primary" /> */}
+          <OrbitDotMotion />
           <p>Running AI Forecasting Models...</p>
           <p>(This may take a few moments)</p>
         </div>
