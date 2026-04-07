@@ -1,5 +1,9 @@
 import os
-import uuid # <-- NEW: Used to generate unique IDs for new chats
+import uuid
+import logging
+import traceback
+import pandas as pd
+from prophet import Prophet
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
@@ -9,101 +13,96 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
+
 chat_bp = Blueprint('chat', __name__)
 
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 if gemini_api_key:
     genai.configure(api_key=gemini_api_key)
 
-# ─── 1. NEW: GET ALL CHAT SESSIONS FOR SIDEBAR ─────────────────────────────────
-@chat_bp.route('/sessions', methods=['GET'])
+# ─── 1. GET ALL CHAT SESSIONS ──────────────────────────────────────
+@chat_bp.route('/sessions', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def get_sessions():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     try:
         current_user_email = get_jwt_identity()
-        
-        # Aggregate MongoDB to group messages by session_id to build the sidebar list
         pipeline = [
-            # Only match messages from this user that HAVE a session_id
             {"$match": {"user_email": current_user_email, "sender": "user", "session_id": {"$exists": True}}},
-            {"$sort": {"timestamp": 1}}, # Oldest first so we can grab the first message as the title
+            {"$sort": {"timestamp": 1}}, 
             {"$group": {
                 "_id": "$session_id",
-                "title": {"$first": "$text"}, # Use their first message as the chat title
+                "title": {"$first": "$text"}, 
                 "last_updated": {"$last": "$timestamp"}
             }},
-            {"$sort": {"last_updated": -1}} # Newest chats at the top of the sidebar
+            {"$sort": {"last_updated": -1}} 
         ]
-        
         sessions = list(db.chat_history.aggregate(pipeline))
-        
-        # Format the data cleanly for the frontend
         formatted_sessions = []
         for s in sessions:
             title = s['title']
-            # Truncate title if it's too long
-            short_title = title[:30] + '...' if len(title) > 30 else title
             formatted_sessions.append({
                 "id": s["_id"],
-                "title": short_title,
+                "title": title[:30] + '...' if len(title) > 30 else title,
                 "updated_at": s["last_updated"].isoformat() if s["last_updated"] else None
             })
-            
         return jsonify(formatted_sessions), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ─── 2. UPDATED: GET HISTORY FOR A SPECIFIC SESSION ────────────────────────────
-@chat_bp.route('/history/<session_id>', methods=['GET'])
+# ─── 2. GET HISTORY FOR A SPECIFIC SESSION ─────────────────────────────────────
+@chat_bp.route('/history/<session_id>', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def get_history(session_id):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     try:
         current_user_email = get_jwt_identity()
-        
-        # Find messages only for this specific chat thread
         history_cursor = db.chat_history.find(
             {"user_email": current_user_email, "session_id": session_id}, 
             {"_id": 0}
         ).sort("timestamp", 1)
-        
         return jsonify(list(history_cursor)), 200
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ─── 3. NEW: DELETE A CHAT SESSION ─────────────────────────────────────────────
-@chat_bp.route('/<session_id>', methods=['DELETE'])
+# ─── 3. DELETE A CHAT SESSION ──────────────────────────────────────────────────
+@chat_bp.route('/<session_id>', methods=['DELETE', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def delete_session(session_id):
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     try:
         current_user_email = get_jwt_identity()
-        # Delete all messages associated with this session
         db.chat_history.delete_many({"user_email": current_user_email, "session_id": session_id})
         return jsonify({"message": "Chat deleted successfully."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ─── 4. UPDATED: LIVE CHAT ROUTE (NOW HANDLES SESSION IDs) ─────────────────────
-@chat_bp.route('', methods=['POST'], strict_slashes=False)
+# ─── 4. LIVE CHAT ROUTE ────────────────────────────────────────────────────────
+@chat_bp.route('', methods=['POST', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def chat_with_ai():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+        
     try:
         current_user_email = get_jwt_identity()
         data = request.get_json()
         user_message = data.get("message")
-        session_id = data.get("session_id") # <-- Check if frontend sent an ID
+        session_id = data.get("session_id")
 
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
 
-        # If this is a brand new chat, generate a new unique ID!
         if not session_id:
             session_id = str(uuid.uuid4())
 
-        # Save User Message with Session ID
         db.chat_history.insert_one({
             "user_email": current_user_email,
             "session_id": session_id,
@@ -114,13 +113,22 @@ def chat_with_ai():
             
         current_key = os.getenv("GEMINI_API_KEY")
         if not current_key:
+            print(" ERROR: Gemini API key is missing from .env")
             return jsonify({"error": "AI configuration missing."}), 500
 
-        # GATHER LIVE MONGODB CONTEXT
-        low_stock_cursor = db.inventory.find({"$expr": {"$lte": ["$stock", "$low_stock_threshold"]}})
-        low_stock_items = [f"{item['name']} ({item['stock']} {item.get('unit', 'units')} left)" for item in low_stock_cursor]
+        print(f" Processing chat for: {user_message[:50]}...")
+
+        # --- A. GATHER LIVE INVENTORY (Safer approach) ---
+        low_stock_items = []
+        for item in db.inventory.find():
+            stock = float(item.get('stock', 0))
+            threshold = float(item.get('low_stock_threshold', 10))
+            if stock <= threshold:
+                low_stock_items.append(f"{item.get('name', 'Unknown')} ({stock} {item.get('unit', 'units')} left)")
+        
         low_stock_text = ", ".join(low_stock_items) if low_stock_items else "All inventory levels are healthy."
 
+        # --- B. GATHER SALES CONTEXT ---
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
         pipeline = [
@@ -133,20 +141,49 @@ def chat_with_ai():
         top_3_items = [f"{item['_id']} ({item['total_sold']} sold)" for item in recent_sales[:3]]
         top_items_text = ", ".join(top_3_items) if top_3_items else "No recent sales."
 
+        # --- C. GATHER TOMORROW'S EXACT PROPHET FORECAST ---
+        tomorrow_forecast_text = "Forecast unavailable."
+        try:
+            sales_cursor = db.sales.find({}, {"timestamp": 1, "total_price": 1})
+            df = pd.DataFrame(list(sales_cursor))
+            if not df.empty:
+                df['timestamp'] = pd.to_datetime(df['timestamp']).dt.date
+                daily_data = df.groupby('timestamp')['total_price'].sum().reset_index()
+                
+                prophet_df = daily_data.rename(columns={'timestamp': 'ds', daily_data.columns[1]: 'y'})
+                m = Prophet(yearly_seasonality=False, daily_seasonality=False, weekly_seasonality=True)
+                m.fit(prophet_df)
+                
+                future = m.make_future_dataframe(periods=7)
+                forecast = m.predict(future)
+                
+                tomorrow_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+                tomorrow_row = forecast[forecast['ds'].dt.strftime('%Y-%m-%d') == tomorrow_date]
+                
+                if not tomorrow_row.empty:
+                    tomorrow_predicted_val = max(0, round(tomorrow_row.iloc[0]['yhat'], 2))
+                    tomorrow_forecast_text = f"LKR {tomorrow_predicted_val:,.2f}"
+        except Exception as e:
+            print(" Warning: Prophet ML failed inside chat route:", str(e))
+
+        # --- D. INJECT INTO GEMINI ---
         full_prompt = f"""
         System: You are 'RestoAI', the management assistant for Lady Hill Hotel. 
         Use LKR for currency. Use Markdown formatting. Keep answers concise.
         
-        Current Data:
-        - Low Stock: {low_stock_text}
+        Current Live Data:
+        - Low Stock Alerts: {low_stock_text}
         - 7-Day Revenue: LKR {total_7d_revenue:,.2f}
-        - Top Items: {top_items_text}
+        - Top Selling Items (7 Days): {top_items_text}
+        - Tomorrow's Machine Learning Forecast (Prophet): {tomorrow_forecast_text}
+        
+        CRITICAL INSTRUCTION: If the user asks for tomorrow's forecast, expected revenue, or sales predictions, you MUST use the exact Machine Learning Forecast provided above. Do NOT calculate your own averages.
         
         User Question: {user_message}
         """
 
         genai.configure(api_key=current_key)
-        available_models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest']
+        available_models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']
         
         ai_reply = None
         for model_name in available_models:
@@ -155,12 +192,13 @@ def chat_with_ai():
                 response = model.generate_content(full_prompt)
                 if response and hasattr(response, 'text'):
                     ai_reply = response.text
+                    print(f"✅ Success using model: {model_name}")
                     break 
             except Exception as e:
+                print(f" Gemini model {model_name} failed: {e}")
                 continue 
 
         if ai_reply:
-            # Save AI Response with Session ID
             db.chat_history.insert_one({
                 "user_email": current_user_email,
                 "session_id": session_id,
@@ -168,11 +206,12 @@ def chat_with_ai():
                 "text": ai_reply,
                 "timestamp": datetime.now()
             })
-            
-            # <-- Return the session_id back to the frontend so it knows what chat it is in!
             return jsonify({"reply": ai_reply, "session_id": session_id}), 200
         else:
+            print("❌ ERROR: All Gemini AI models failed to respond.")
             return jsonify({"error": "AI models unavailable."}), 500
 
     except Exception as e:
-        return jsonify({"error": "Failed to communicate with AI."}), 500
+        print("\n CRITICAL CHAT ERROR:")
+        traceback.print_exc() # Prints the exact line number of the crash
+        return jsonify({"error": f"Backend Error: {str(e)}"}), 500

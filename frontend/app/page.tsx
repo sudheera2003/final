@@ -65,9 +65,7 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// --- 1. IMPORT YOUR NEW SECURITY HOOK ---
 import { usePermissions } from "@/hooks/use-permissions";
-
 import OrbitDotMotion from "@/components/pixel-perfect/orbit-dot-motion";
 
 // --- TYPES ---
@@ -98,11 +96,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"7" | "30">("30");
 
-  // --- TABLE STATES ---
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // --- 2. INITIALIZE THE SECURITY HOOK ---
   const { hasPermission } = usePermissions();
 
   const fetchData = async () => {
@@ -129,9 +125,7 @@ export default function DashboardPage() {
 
       if (predictRes.status === 401 || invRes.status === 401) {
         toast.error("Session expired. Please log in again");
-        localStorage.removeItem("token");
-        localStorage.removeItem("email");
-        localStorage.removeItem("name");
+        localStorage.clear();
         window.location.href = "/login";
         return;
       }
@@ -161,23 +155,16 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  // --- NATIVE EXPORT FUNCTION ---
   const exportToCSV = (filename: string, headers: string[], data: any[][]) => {
-    if (!data || data.length === 0) {
-      toast.error("No data available to export");
-      return;
-    }
-
+    if (!data || data.length === 0) return;
     const csvRows = [headers, ...data]
       .map((row) =>
         row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
-
     const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-
     link.setAttribute("href", url);
     link.setAttribute("download", `${filename}.csv`);
     link.style.visibility = "hidden";
@@ -247,18 +234,43 @@ export default function DashboardPage() {
       ? ((next7DaysPredicted - past7DaysActual) / past7DaysActual) * 100
       : 0;
 
-  // --- DAILY INSIGHTS MATH ---
-  const actualsList = chartData.filter((d) => d.actual !== null);
-  const todayData =
-    actualsList.length > 0 ? actualsList[actualsList.length - 1] : null;
-  const todayIndex = todayData
-    ? chartData.findIndex((d) => d.date === todayData.date)
-    : -1;
-  const tomorrowData =
-    todayIndex !== -1 && todayIndex + 1 < chartData.length
-      ? chartData[todayIndex + 1]
-      : null;
+  // =========================================================================
+  // --- THE FIX: BULLETPROOF CALENDAR-BASED DAILY INSIGHTS MATH ---
+  // =========================================================================
 
+  // 1. Get real-world calendar time from your computer
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const todayTime = todayDate.getTime();
+
+  const tomorrowDate = new Date(todayDate);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowTime = tomorrowDate.getTime();
+
+  // 2. Search the AI's data for the exact matching calendar days
+  const todayData =
+    chartData.find((d) => {
+      const [year, month, day] = d.date.split("-");
+      const dTime = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+      ).getTime();
+      return dTime === todayTime;
+    }) || null;
+
+  const tomorrowData =
+    chartData.find((d) => {
+      const [year, month, day] = d.date.split("-");
+      const dTime = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+      ).getTime();
+      return dTime === tomorrowTime;
+    }) || null;
+
+  // 3. Do the math safely
   const todayActual = todayData?.actual || 0;
   const todayPredicted = todayData?.predicted || 0;
   const tomorrowPredicted = tomorrowData?.predicted || 0;
@@ -273,6 +285,7 @@ export default function DashboardPage() {
 
   const filteredChartData =
     timeRange === "7" ? chartData.slice(-14) : chartData;
+  // =========================================================================
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -320,10 +333,9 @@ export default function DashboardPage() {
       header: "Threshold",
       cell: ({ row }) => {
         const item = row.original;
-        const thresholdLimit = item.low_stock_threshold || 10;
         return (
           <div className="text-muted-foreground">
-            {thresholdLimit} {item.unit}
+            {item.low_stock_threshold || 10} {item.unit}
           </div>
         );
       },
@@ -367,7 +379,6 @@ export default function DashboardPage() {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
-          {/* <Loader2 className="h-8 w-8 animate-spin text-primary" /> */}
           <OrbitDotMotion />
           <p>Running AI Forecasting Models...</p>
           <p>(This may take a few moments)</p>
@@ -478,13 +489,11 @@ export default function DashboardPage() {
               LKR.{todayActual.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {todayData
-                ? new Date(todayData.date).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : "No data"}
+              {todayDate.toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              })}
             </p>
           </CardContent>
         </Card>
@@ -553,13 +562,11 @@ export default function DashboardPage() {
               LKR.{tomorrowPredicted.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {tomorrowData
-                ? new Date(tomorrowData.date).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : "Pending..."}
+              {tomorrowDate.toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              })}
             </p>
           </CardContent>
         </Card>
@@ -661,9 +668,12 @@ export default function DashboardPage() {
                   thresholds.
                 </CardDescription>
               </div>
-              {/* --- SECURED: ONLY SHOW IF THEY HAVE DOWNLOAD PERMISSION --- */}
               {hasPermission("download_sales_files") && (
-                <Button variant="outline" size="sm" onClick={handleExportRestock}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportRestock}
+                >
                   <Download className="mr-2 h-4 w-4" /> Export
                 </Button>
               )}
@@ -796,7 +806,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2 text-(--primary)">
-                 Top 3 Trending (Past 7 Days)
+                Top 3 Trending (Past 7 Days)
               </CardTitle>
               <CardDescription>
                 Most popular items ordered this week
@@ -828,7 +838,6 @@ export default function DashboardPage() {
                   AI prediction for all products expected to sell
                 </CardDescription>
               </div>
-              {/* --- SECURED: ONLY SHOW IF THEY HAVE DOWNLOAD PERMISSION --- */}
               {hasPermission("download_sales_files") && (
                 <Button
                   variant="ghost"
@@ -878,7 +887,6 @@ export default function DashboardPage() {
                   Total ingredients needed to fulfill the entire forecast
                 </CardDescription>
               </div>
-              {/* --- SECURED: ONLY SHOW IF THEY HAVE DOWNLOAD PERMISSION --- */}
               {hasPermission("download_sales_files") && (
                 <Button
                   variant="ghost"

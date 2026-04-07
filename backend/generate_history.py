@@ -1,6 +1,6 @@
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -27,8 +27,18 @@ def generate_historical_sales(days_back=180):
         print("Error: No products found in the database. Please upload products first.")
         return
 
+    # --- NEW: Clear old data so you don't accidentally create millions of duplicate rows! ---
+    print("Clearing old sales data to prevent duplicates...")
+    db.sales.delete_many({})
+
     sales_to_insert = []
-    end_date = datetime.now().replace(hour=23, minute=59, second=59)
+    
+    # --- THE TIMEZONE FIX ---
+    # Create a timezone object for Sri Lanka (UTC+05:30)
+    sl_tz = timezone(timedelta(hours=5, minutes=30))
+    
+    # Generate the end date using the explicit timezone
+    end_date = datetime.now(sl_tz).replace(hour=23, minute=59, second=59)
     start_date = end_date - timedelta(days=days_back)
 
     print(f"Generating {days_back} days of historical sales data...")
@@ -50,7 +60,9 @@ def generate_historical_sales(days_back=180):
             
             total_price = float(product.get("price", 0)) * qty
 
-            # Add a random time during operating hours (e.g., 11 AM to 10 PM)
+            # Add a random time during operating hours
+            # Because current_date has our sl_tz timezone attached, 
+            # MongoDB will safely convert 10 PM to 4:30 PM UTC, preventing the rollover!
             sale_time = current_date.replace(
                 hour=random.randint(11, 22),
                 minute=random.randint(0, 59),
