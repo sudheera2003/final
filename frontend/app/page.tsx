@@ -579,7 +579,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-start justify-between pb-4">
               <div>
-                <CardTitle>Revenue Forecast (Facebook Prophet)</CardTitle>
+                <CardTitle>Revenue Forecast</CardTitle>
                 <CardDescription>
                   {timeRange === "7"
                     ? "Recent 7-day historical trend combined with a 7-day predictive forward-look."
