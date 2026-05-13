@@ -389,7 +389,6 @@ export default function InventoryPage() {
 
         <div className="flex items-center gap-2">
 
-          {/* SECURED: UPLOAD DIALOG (Needs 'add_inventory' since bulk-import adds items) */}
           {hasPermission("add_inventory") && (
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
