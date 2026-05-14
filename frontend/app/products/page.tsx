@@ -39,7 +39,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Shadcn UI Imports
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,10 +47,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileUpload } from "@/components/file-upload";
 
-// --- 1. IMPORT YOUR SECURITY HOOK ---
+// import permissions hook
 import { usePermissions } from "@/hooks/use-permissions";
 
-// --- TYPES ---
+// types
 export type Ingredient = { _id: string; name: string; unit: string; unit_price: number; };
 export type RecipeItem = { ingredient_id: string; qty: number; tempId?: number };
 export type Product = { _id: string; name: string; category: string; price: number; recipe: RecipeItem[]; };
@@ -61,30 +60,30 @@ export default function ProductsPage() {
   const [inventory, setInventory] = useState<Ingredient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // --- TABLE STATES ---
+  // table states
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // --- DIALOG STATES ---
+  // dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-  // --- FORM STATES (Shared for Add and Edit) ---
+  // form states
   const [productName, setProductName] = useState("");
   const [category, setCategory] = useState("Burgers");
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
 
-  // --- UPLOAD STATES ---
+  // upload states
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  // initialize permissions
   const { hasPermission } = usePermissions();
 
-  // --- FETCH DATA ---
+  // fetch data
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -116,7 +115,7 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- FORM HANDLERS ---
+  // form handlers
   const resetForm = () => {
     setProductName(""); setCategory("General"); setSellingPrice(0); setRecipe([]); setEditingId(null);
   };
@@ -143,7 +142,7 @@ export default function ProductsPage() {
     setRecipe(updated);
   };
 
-  // --- THE MATH: LIVE COST CALCULATION ---
+  // cost calculation
   const costToMake = recipe.reduce((total, item) => {
     const invItem = inventory.find(i => i._id === item.ingredient_id);
     return total + (invItem ? invItem.unit_price * item.qty : 0);
@@ -151,7 +150,7 @@ export default function ProductsPage() {
   const profit = sellingPrice - costToMake;
   const margin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
 
-  // --- CRUD HANDLERS ---
+  // crud handlers
   const handleSaveProduct = async (e: React.FormEvent, isEdit: boolean = false) => {
     e.preventDefault();
     try {
@@ -236,7 +235,7 @@ export default function ProductsPage() {
     }
   };
 
-  // --- COLUMNS DEFINITION ---
+  // column definitions
   const columns: ColumnDef<Product>[] = [
     {
       accessorKey: "name",
@@ -287,7 +286,6 @@ export default function ProductsPage() {
         );
       },
     },
-    // --- SECURED: ONLY RENDER ACTIONS IF THEY CAN EDIT OR DELETE ---
     ...(hasPermission("edit_products") || hasPermission("delete_products") ? [{
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -302,7 +300,7 @@ export default function ProductsPage() {
               </Button>
             )}
 
-            {/* SECURED: DELETE BUTTON */}
+            {/* delete button */}
             {hasPermission("delete_products") && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -330,7 +328,7 @@ export default function ProductsPage() {
     }] : []),
   ];
 
-  // --- TABLE INITIALIZATION ---
+  // table initialization
   const table = useReactTable({
     data: products,
     columns,
@@ -343,7 +341,7 @@ export default function ProductsPage() {
     onGlobalFilterChange: setGlobalFilter,
   });
 
-  // Shared form JSX for both Add and Edit Dialogs
+  // shared form JSX for both Add and Edit Dialogs
   const renderProductForm = (isEdit: boolean) => (
     <form onSubmit={(e) => handleSaveProduct(e, isEdit)} className="space-y-6">
       <div className="grid grid-cols-2 gap-4 border-b border-border pb-6">

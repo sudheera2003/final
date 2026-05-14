@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 from flask_caching import Cache  
 from app.extensions import socketio, bcrypt, jwt
 
-# Explicitly load environment variables from .env file
+#load environment variables
 load_dotenv()
 
-# --- 1. DEFINE CACHE FIRST (Before importing routes!) ---
+# define cache first
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 3600})
 
-# --- 2. NOW IMPORT ROUTES ---
+# import routes
 from app.routes.auth import auth_bp
 from app.routes.dashboard import dashboard_bp
 from app.routes.inventory import inventory_bp
@@ -25,12 +25,12 @@ from app.routes.tickets import tickets_bp
 def create_app():
     app = Flask(__name__)
     
-    # --- 3. CONFIGURATION ---
+    # configuration
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev_secret")
     app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "jwt_secret")
     app.config['MONGO_URI'] = os.getenv("MONGO_URI")
 
-    # --- 4. DEFINE ALLOWED ORIGINS ---
+    # allowed urls
     allowed_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -41,17 +41,16 @@ def create_app():
         "https://final-inky-iota.vercel.app/"
     ]
 
-    # --- 5. INITIALIZE PLUGINS ---
     CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
     bcrypt.init_app(app)
     jwt.init_app(app)
     socketio.init_app(app, cors_allowed_origins=allowed_origins)
 
-    # Bind the cache to your Flask app
+    # bind the cache to flask app
     cache.init_app(app)
 
-    # --- 6. ROUTES ---
+    # routes
     @app.route('/api/health')
     def health():
         return jsonify({
@@ -60,7 +59,7 @@ def create_app():
             "env": "production" if os.getenv("RENDER") else "development"
         })
 
-    # Register Blueprints
+    # register Blueprints
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(sales_bp, url_prefix='/api/sales')
     app.register_blueprint(dashboard_bp, url_prefix='/api')

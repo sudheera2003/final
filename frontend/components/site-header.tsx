@@ -9,9 +9,8 @@ import { Power } from "lucide-react"
 export function SiteHeader() {
   const pathname = usePathname()
 
-  // Define your route names here
+  // route names
   const getPageTitle = (path: string) => {
-    // Normalizing the path to handle trailing slashes or sub-routes if needed
     if (path === "/") return "Dashboard"
     if (path === "/users") return "User Management"
     if (path === "/roles") return "Permission Management"
@@ -19,7 +18,7 @@ export function SiteHeader() {
     if (path === "/inventory") return "Inventory Management"
     if (path === "/products") return "Product Catalog"
     
-    // Fallback: Capitalize the first letter of the path segment (e.g. /inventory -> Inventory)
+    // fallback: capitalize the first letter of the path segment (e.g. /inventory -> Inventory)
     const segment = path.split("/")[1]
     return segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : "Resto App"
   }
@@ -35,7 +34,7 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-8"
         />
         
-        {/* Dynamic Title */}
+        {/* dynamic title */}
         <h1 className="text-base font-medium">
           {title}
         </h1>

@@ -20,13 +20,13 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     
     setIsLoggedIn(authenticated)
 
-    // Redirect to login if not authenticated and not already on the login page
+    // redirect to login if not authenticated and not already on the login page
     if (!authenticated && pathname !== "/login") {
       router.push("/login")
     }
   }, [pathname, router])
 
-  // 1. WHILE CHECKING: Show a blank screen or a spinner to prevent content flash
+  // show a spinner to prevent content flash
   if (isLoggedIn === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -37,7 +37,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
   const isLoginPage = pathname === "/login"
 
-  // 2. GUEST VIEW: If on login page or redirecting
+  // if on login page or redirecting
   if (isLoginPage || !isLoggedIn) {
     return (
       <main className="flex min-h-screen w-full items-center justify-center bg-background">
@@ -46,7 +46,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // 3. AUTHENTICATED VIEW: Full Dashboard
+  // full dashboard
   return (
     <SidebarProvider
           style={

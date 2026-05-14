@@ -14,10 +14,10 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    // 1. Calculate the new array using the current 'files' state
+    // calculate the new array using the current 'files' state
     const newFiles = [...files, ...acceptedFiles];
     
-    // 2. Safely update both local and parent states independently
+    // safely update both local and parent states independently
     setFiles(newFiles);
     onFilesChange(newFiles); 
   }, [files, onFilesChange]);
@@ -33,7 +33,7 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
 
   return (
     <div className="w-full space-y-4">
-      {/* Drop Zone */}
+      {/* drop zone */}
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors 
@@ -55,7 +55,7 @@ export function FileUpload({ onFilesChange }: FileUploadProps) {
         </div>
       </div>
 
-      {/* File List */}
+      {/* file list */}
       {files.length > 0 && (
         <ScrollArea className="h-40 w-full border rounded-md p-4">
           <div className="space-y-2">

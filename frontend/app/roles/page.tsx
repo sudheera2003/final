@@ -37,8 +37,8 @@ export default function AccessControlPage() {
   const [roles, setRoles] = useState<any[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<Permission[]>([]);
   
+  //loading states
   const [loading, setLoading] = useState(true);
-  // --- UPDATED: Single loading state for saving ---
   const [isSavingAll, setIsSavingAll] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
@@ -63,8 +63,8 @@ export default function AccessControlPage() {
 
       if (rolesRes.status === 401 || blueprintRes.status === 401) {
         toast.error("Session expired. Please log in again.");
-        localStorage.clear(); // Clears token, permissions, role, etc.
-        window.location.href = "/login"; // Redirect to your login page
+        localStorage.clear(); // clears token, permissions, role, etc.
+        window.location.href = "/login"; // redirect to login page
         return;
       }
 
@@ -132,13 +132,13 @@ export default function AccessControlPage() {
     );
   };
 
-  // --- UPDATED: SINGLE SAVE FUNCTION ---
+  // save function
   const saveAllPermissions = async () => {
     setIsSavingAll(true);
     try {
       const token = localStorage.getItem("token");
       
-      // Create an array of HTTP requests (one for each role)
+      // create an array of HTTP requests (one for each role)
       const savePromises = roles.map(role => 
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/roles/${role.role_name}/permissions`, {
           method: "PUT",
@@ -147,10 +147,10 @@ export default function AccessControlPage() {
         })
       );
 
-      // Fire all requests at the exact same time and wait for them to finish
+      // fire all requests at the exact same time and wait for them to finish
       const results = await Promise.all(savePromises);
       
-      // Check if any of the requests failed
+      // check if any of the requests failed
       const hasErrors = results.some(res => !res.ok);
 
       if (hasErrors) {

@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-// --- NEW IMPORTS FOR ALERT DIALOG ---
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +32,7 @@ export type User = {
 }
 
 export const columns: ColumnDef<User>[] = [
-  // --- NAME COLUMN ---
+  // name column
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -49,20 +48,20 @@ export const columns: ColumnDef<User>[] = [
     },
   },
 
-  // --- EMAIL COLUMN ---
+  // email column
   {
     accessorKey: "email",
     header: "Email",
   },
 
-  // --- ROLE COLUMN ---
+  // role column
   {
     accessorKey: "role",
     header: "Role",
     cell: ({ row }) => {
         const role = row.getValue("role") as string
         
-        // Define badge colors based on the role
+        // badge colors based on the role
         let badgeColor = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
         if (role === 'admin') badgeColor = "bg-red-500/10 text-red-600 dark:text-red-400"
         if (role === 'super_admin') badgeColor = "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
@@ -76,14 +75,14 @@ export const columns: ColumnDef<User>[] = [
     }
   },
 
-  // --- ACTIONS COLUMN ---
+  // actions column
   {
     id: "actions",
     cell: ({ row }) => {
       const user = row.original
       
       const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
-      // --- NEW: State to control the Alert Dialog ---
+      // sate to control alert dialog
       const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
       useEffect(() => {
@@ -111,7 +110,7 @@ export const columns: ColumnDef<User>[] = [
 
             if (res.ok) {
                 toast.success("User deleted successfully")
-                setShowDeleteAlert(false) // Close the modal on success
+                setShowDeleteAlert(false) // close the modal on success
             } else {
                 toast.error(data.error || "Failed to delete user")
             }
@@ -139,7 +138,7 @@ export const columns: ColumnDef<User>[] = [
             
               <>
                 <DropdownMenuSeparator />
-                {/* --- UPDATED: Trigger state instead of direct delete --- */}
+                {/* trigger state instead of direct delete */}
                 <DropdownMenuItem 
                     onSelect={() => setShowDeleteAlert(true)}
                     className="text-red-600 focus:text-red-600 cursor-pointer"
@@ -151,7 +150,7 @@ export const columns: ColumnDef<User>[] = [
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* --- NEW: The Alert Dialog rendered alongside the Dropdown --- */}
+          {/* alert dialog */}
           <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
             <AlertDialogContent>
               <AlertDialogHeader>

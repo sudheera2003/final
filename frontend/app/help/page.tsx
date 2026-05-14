@@ -30,12 +30,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function HelpPage() {
-  // --- FORM STATES ---
+  // form state
   const [issueType, setIssueType] = useState("Bug Report");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- SUBMIT HANDLER ---
+  // submit handler
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -76,8 +76,8 @@ export default function HelpPage() {
 
       if (res.ok) {
         toast.success("Ticket submitted! The administrator has been notified");
-        setDescription(""); // Clear the text area on success
-        setIssueType("Bug Report"); // Reset dropdown
+        setDescription(""); // clear the text area on success
+        setIssueType("Bug Report"); // reset dropdown
       } else {
         toast.error(data.error || "Failed to submit ticket");
       }
@@ -91,7 +91,7 @@ export default function HelpPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       
-      {/* PAGE HEADER */}
+      {/* page header */}
       <div className="flex items-center gap-3 border-b pb-6">
         <div className="p-3 bg-primary/10 rounded-xl">
           <HelpCircle className="h-8 w-8 text-primary" />
@@ -106,7 +106,7 @@ export default function HelpPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         
-        {/* LEFT COLUMN: FAQ & How it works */}
+        {/* left column: FAQ & How it works */}
         <div className="md:col-span-2 space-y-8">
           
           <section>
@@ -179,7 +179,7 @@ export default function HelpPage() {
           </section>
         </div>
 
-        {/* RIGHT COLUMN: Contact & System Info */}
+        {/* right column: Contact & System Info */}
         <div className="space-y-6 mt-5">
           
           <Card className="border-primary/20 bg-primary/5 shadow-sm">
@@ -206,7 +206,7 @@ export default function HelpPage() {
             </CardContent>
           </Card>
 
-          {/* SUPPORT TICKET FORM */}
+          {/* support ticket form */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">

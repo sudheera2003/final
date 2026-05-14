@@ -51,10 +51,10 @@ export function NavUser({
 
   const [userData, setUserData] = useState(user);
   
-  // State to control the visibility of the logout confirmation dialog
+  // state to control the visibility of the logout confirmation dialog
   const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
-  // 1. Load Initial User Data from LocalStorage
+  // load initial user data from localStorage
   useEffect(() => {
     const storedEmail = localStorage.getItem("email");
     const storedName = localStorage.getItem("name");
@@ -68,25 +68,25 @@ export function NavUser({
     }
   }, [user]);
 
-  // 2. Listen for Real-Time Updates via WebSocket
+  // listen for real time updates via websocket
   useEffect(() => {
     if (!socket) return;
 
     socket.on("profile_updated", (data: any) => {
-      // Get the currently logged-in email
+      // get the currently logged in email
       const currentEmail = localStorage.getItem("email");
 
-      // Check if the update is meant for THIS user
+      // check if the update is meant for this user
       if (data.email === currentEmail) {
         console.log("Real-time profile update received:", data);
 
-        // Update State instantly
+        // update State instantly
         setUserData((prev) => ({
           ...prev,
           name: data.name,
         }));
 
-        // Persist to LocalStorage so it stays after refresh
+        // persist to localStorage so it stays after refresh
         localStorage.setItem("name", data.name);
       }
     });
@@ -96,7 +96,7 @@ export function NavUser({
     };
   }, [socket]);
 
-  // 3. Handle Logout
+  // handle logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("email"); 
@@ -104,7 +104,7 @@ export function NavUser({
     router.push("/login");
   };
 
-  // Helper for Initials
+  // helper for initials
   const getInitials = (name: string) => {
     return name ? name.substring(0, 2).toUpperCase() : "CN";
   };
@@ -168,7 +168,7 @@ export function NavUser({
 
             <DropdownMenuItem
               onSelect={(e) => {
-                e.preventDefault(); // Prevents the dropdown from ignoring the alert opening
+                e.preventDefault(); // prevents the dropdown from ignoring the alert opening
                 setShowLogoutAlert(true);
               }}
               className="cursor-pointer text-red-500 focus:text-red-500"
@@ -179,7 +179,7 @@ export function NavUser({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* LOGOUT CONFIRMATION DIALOG */}
+        {/* logout confirmation dialog */}
         <AlertDialog open={showLogoutAlert} onOpenChange={setShowLogoutAlert}>
           <AlertDialogContent>
             <AlertDialogHeader>

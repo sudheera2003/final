@@ -6,21 +6,21 @@ from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
 
-# --- PERMISSION DECORATOR ---
+# permission decorator
 def requires_permission(target_permission):
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
-            # 1. THE FIX: Catch the CORS Preflight and instantly approve it
+            # catch the CORS preflight and instantly approve it
             if request.method == "OPTIONS":
                 return jsonify({}), 200
 
-            # 2. Authenticate the user
+            # authenticate user
             verify_jwt_in_request() 
             claims = get_jwt()
             user_permissions = claims.get("permissions", [])
             
-            # 3. Check for the specific permission in their "Key Ring"
+            # check for the specific permission
             if target_permission not in user_permissions:
                 return jsonify({
                     "error": f"Access denied. You need the '{target_permission}' permission."
@@ -31,7 +31,7 @@ def requires_permission(target_permission):
     return wrapper
 
 
-# --- LOGIN ROUTE ---
+# login route
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'], strict_slashes=False)
 def login():
     if request.method == "OPTIONS":
@@ -68,7 +68,7 @@ def login():
     return jsonify({"error": "Invalid credentials"}), 401
 
 
-# --- GET AVAILABLE ROLES ---
+# get available roles
 @auth_bp.route('/roles', methods=['GET'])
 @jwt_required()
 def get_roles():
@@ -86,9 +86,9 @@ def get_roles():
     return jsonify(available_roles), 200
 
 
-# --- REGISTER / ADD USER ROUTE ---
+# add user route
 @auth_bp.route('/register', methods=['POST', 'OPTIONS'], strict_slashes=False)
-@requires_permission('user_management') # (No need for @jwt_required here anymore!)
+@requires_permission('user_management')
 def register():
     data = request.get_json()
     email = data.get('email')
@@ -121,7 +121,7 @@ def register():
     return jsonify({"message": "User created successfully"}), 201
 
 
-# --- DELETE USER ROUTE ---
+# delete user route
 @auth_bp.route('/users/<user_id>', methods=['DELETE', 'OPTIONS'], strict_slashes=False)
 @requires_permission('user_management')
 def delete_user(user_id):
@@ -149,7 +149,7 @@ def delete_user(user_id):
     return jsonify({"error": "Failed to delete user"}), 500
 
 
-# --- GET ALL USERS ---
+# get all users route
 @auth_bp.route('/users', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def get_users():
@@ -162,7 +162,7 @@ def get_users():
     return jsonify(users), 200
 
 
-# --- GET CURRENT LOGGED IN USER ---
+# get current logged in user route
 @auth_bp.route('/users/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
@@ -175,7 +175,7 @@ def get_current_user():
     return jsonify(user), 200
 
 
-# --- UPDATE PROFILE ROUTE ---
+# update profile route
 @auth_bp.route('/update-profile', methods=['PUT', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def update_profile():
@@ -214,7 +214,7 @@ def update_profile():
     return jsonify(response_data), 200
 
 
-# --- CHANGE PASSWORD ROUTE ---
+# change password route
 @auth_bp.route('/password', methods=['PUT', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def change_password():
@@ -246,7 +246,7 @@ def change_password():
     return jsonify({"message": "Password changed successfully"}), 200
 
 
-# --- UPDATE ROLE PERMISSIONS ---
+# update role permissions route
 @auth_bp.route('/roles/<role_name>/permissions', methods=['PUT', 'OPTIONS'], strict_slashes=False)
 @requires_permission('manage_roles')
 def update_role_permissions(role_name):
@@ -267,7 +267,7 @@ def update_role_permissions(role_name):
     return jsonify({"error": "Role not found"}), 404
 
 
-# --- FETCH ALL ROLES AND PERMISSIONS ---
+# get all roles with permissions route
 @auth_bp.route('/roles_full', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @requires_permission('manage_roles')
 def get_roles_full():
@@ -275,7 +275,7 @@ def get_roles_full():
     return jsonify(roles), 200
 
 
-# --- FETCH DYNAMIC PERMISSIONS BLUEPRINT ---
+# get dynamic permissions blueprint route
 @auth_bp.route('/permissions_blueprint', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @requires_permission('manage_roles')
 def get_permissions_blueprint():

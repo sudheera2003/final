@@ -16,7 +16,7 @@ export function usePermissions() {
     setIsLoaded(true)
   }, [])
 
-  // unction that checks the user's "Key Ring"
+  // function that checks the user's "Key Ring"
   const hasPermission = (targetPermission: string) => {
     return permissions.includes(targetPermission)
   }

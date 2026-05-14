@@ -7,17 +7,17 @@ from app.extensions import db
 from datetime import datetime, timedelta
 from bson.objectid import ObjectId
 
-# --- NEW: Import the cache you set up in __init__.py ---
+# import cache
 from app import cache 
 
-# Suppress Prophet logging so it doesn't spam your terminal
+# suppress prophet logging to stop spamming in terminal
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 predict_bp = Blueprint('predict', __name__)
 
 @predict_bp.route('/<target>', methods=['GET'])
 @jwt_required()
-@cache.cached(timeout=3600) # <-- Caches the 7-day revenue forecast for 1 hour
+@cache.cached(timeout=3600) # caches the 7 day revenue forecast for 1 hour
 def get_prediction(target):
     try:
         if target == 'all':
@@ -66,10 +66,10 @@ def get_prediction(target):
 
 @predict_bp.route('/insights', methods=['GET'])
 @jwt_required()
-@cache.cached(timeout=3600) # <-- Caches the massive item-by-item loop for 1 hour
+@cache.cached(timeout=3600) # caches the massive item by item loop for 1 hour
 def get_insights():
     try:
-        # 1. Get Top 3 Trending Products (Past 7 Days ONLY)
+        # get top 3 products in past 7 days
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
         
@@ -82,7 +82,7 @@ def get_insights():
         top_products = [{"name": p["_id"], "sold_last_7_days": p["total_sold"]} 
                         for p in db.sales.aggregate(pipeline) if p["_id"]]
 
-        # 2. Predict TOMORROW'S orders for ALL products
+        # predic tomorrow orders for all products
         ninety_days_ago = end_date - timedelta(days=90)
         sales_cursor = db.sales.find(
             {"timestamp": {"$gte": ninety_days_ago}}, 
@@ -114,13 +114,13 @@ def get_insights():
                 if predicted_qty > 0:
                     predicted_products.append({"name": prod_name, "qty": predicted_qty})
 
-                    # 3. BULLETPROOF INGREDIENT LOOKUP
+                    # ingredient lookup
                     product_docs = list(db.products.find({"$or": [{"name": prod_name}, {"product_name": prod_name}]}))
                     
                     for p_doc in product_docs:
                         ingredients_to_process = []
                         
-                        # Gather all required ingredients regardless of DB structure
+                        # get all required ingredients
                         if "recipe" in p_doc and isinstance(p_doc["recipe"], list):
                             for req in p_doc["recipe"]:
                                 ident = req.get("ingredient_name") or req.get("ingredient_id")
@@ -134,22 +134,22 @@ def get_insights():
                             if ident and q > 0:
                                 ingredients_to_process.append((ident, q))
                                 
-                        # Look up each ingredient to get its REAL name and unit
+                        # look up each ingredient to get its real name and unit
                         for ident, req_qty in ingredients_to_process:
                             inv_doc = None
                             
-                            # A. Try checking if it's a valid MongoDB ObjectId
+                            # checking if it's a valid mongodb ObjectId
                             if isinstance(ident, str) and len(ident) == 24:
                                 try:
                                     inv_doc = db.inventory.find_one({"_id": ObjectId(ident)})
                                 except:
                                     pass
                             
-                            # B. If not an ID, try matching by exact name
+                            # if not an ID, try matching by exact name
                             if not inv_doc:
                                 inv_doc = db.inventory.find_one({"name": ident})
                                 
-                            # C. Extract the true name and unit!
+                            # extract the true name and unit
                             real_name = inv_doc.get("name") if inv_doc else str(ident)
                             real_unit = inv_doc.get("unit", "units") if inv_doc else "units"
                             
@@ -157,7 +157,7 @@ def get_insights():
                                 prep_list_dict[real_name] = {"qty": 0, "unit": real_unit}
                             prep_list_dict[real_name]["qty"] += req_qty
 
-        # Sort the lists so the highest numbers are at the top
+        # sort the lists so the highest numbers are at the top
         predicted_products = sorted(predicted_products, key=lambda x: x["qty"], reverse=True)
         prep_array = [{"ingredient": k, "qty": round(v["qty"], 2), "unit": v["unit"]} for k, v in prep_list_dict.items()]
         prep_array = sorted(prep_array, key=lambda x: x["qty"], reverse=True)

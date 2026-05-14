@@ -46,7 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// --- 1. IMPORT SECURITY HOOK ---
+// import permissions hook
 import { usePermissions } from "@/hooks/use-permissions";
 
 type SupportTicket = {
@@ -70,7 +70,7 @@ export default function AdminTicketsPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<string | null>(null);
 
-  // --- 2. INITIALIZE HOOK ---
+  // initialize permissions hook
   const { hasPermission } = usePermissions();
 
   const fetchTickets = async () => {
@@ -180,7 +180,7 @@ export default function AdminTicketsPage() {
         if (ticket.status === "In Progress") colorClass = "text-blue-600 bg-blue-500/10 border-blue-500/20";
         if (ticket.status === "Resolved") colorClass = "text-green-600 bg-green-500/10 border-green-500/20";
 
-        // --- 3. SECURE STATUS DROPDOWN ---
+        // status dropdown
         if (!hasPermission("edit_ticket_status")) {
           return <Badge variant="outline" className={`font-normal ${colorClass}`}>{ticket.status}</Badge>;
         }
@@ -204,7 +204,7 @@ export default function AdminTicketsPage() {
         );
       },
     },
-    // --- 4. SECURE DELETE COLUMN ---
+    // delete column
     ...(hasPermission("delete_tickets") ? [{
       id: "delete",
       header: () => <div className="">Action</div>,
@@ -339,7 +339,7 @@ export default function AdminTicketsPage() {
         </div>
       </div>
 
-      {/* --- Ticket Details Modal --- */}
+      {/* ticket details modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
@@ -381,7 +381,7 @@ export default function AdminTicketsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- Delete Alert Dialog --- */}
+      {/* delete alert dialog */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

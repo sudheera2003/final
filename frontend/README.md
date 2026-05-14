@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RestoAI
+**AI-Driven Sales Prediction and Inventory Tracking Web Application**
 
-## Getting Started
+## About The Project
+Small and medium-sized enterprises (SMEs) in the hospitality industry frequently experience operational inefficiencies due to manual sales forecasting and disconnected inventory management. **RestoAI** was developed to bridge the gap between front-of-house sales transactions and back-of-house procurement. 
 
-First, run the development server:
+By integrating machine learning for time-series demand forecasting and a dynamic NoSQL database for automated recipe deduction, this platform transitions hospitality operations from reactive stock management to proactive, data-driven decision-making.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## mportant Notice: Running the Application Locally
+> **To run this application, please refer to the Final Project Report.**
+> 
+> For security purposes and academic grading guidelines, all required environment variable configurations (including the `.env` and `.env.local` files), API keys (Google Gemini, MongoDB URI), and comprehensive step-by-step execution instructions are located exclusively in **Appendix of the Final Project Report**. 
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key Features
+* **Predictive Analytics:** Integrates the Facebook Prophet ML library to process historical sales data and accurately forecast future demand trends.
+* **Automated Inventory Deduction:** Dynamically deduces raw physical ingredient quantities from a centralized database immediately upon the ingestion of daily sales data (Excel/CSV uploads).
+* **Conversational AI Assistant:** Features a natural-language chatbot powered by the Google Gemini API, allowing non-technical staff to extract immediate, context-aware operational summaries.
+* **Interactive Dashboards:** Real-time data visualization of stock levels, predicted sales charts, and automated restocking alerts.
+* **Enterprise-Grade Security:** Implements rigorous Role-Based Access Control (RBAC) utilizing JSON Web Tokens (JWT) and `flask_bcrypt` password hashing.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Technology Stack
+This project utilizes a modern, decoupled client-server architecture:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Frontend (Client-Side)**
+* [Next.js](https://nextjs.org/) (React Framework)
+* Interactive charting libraries for data visualization
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Backend (Server-Side)**
+* [Python 3](https://www.python.org/) & [Flask](https://flask.palletsprojects.com/) (Micro-framework)
+* [Pandas](https://pandas.pydata.org/) & [NumPy](https://numpy.org/) (Data sanitization and preprocessing)
+* [Flask-SocketIO](https://flask-socketio.readthedocs.io/) (Real-time WebSocket updates)
 
-## Deploy on Vercel
+**Machine Learning & Artificial Intelligence**
+* [Facebook Prophet](https://facebook.github.io/prophet/) (Time-series forecasting)
+* [Google Gemini API](https://ai.google.dev/) (LLM Conversational Agent)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Database**
+* [MongoDB Atlas](https://www.mongodb.com/atlas) (NoSQL Document Database)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Academic Context
+This software prototype was engineered by **Sudheera Dilum Jayawardana** as the final computing project for the BSc (Hons) Software Engineering degree program affiliated with Plymouth University at NSBM Green University.
+
+* **Module:** PUSL3190 Computing Project
+* **Supervisor:** Mr. Krishantha Ranaweera

@@ -8,18 +8,18 @@ from datetime import datetime
 from pymongo import UpdateOne
 from app.extensions import db, socketio
 
-# --- IMPORT THE PERMISSION DECORATOR ---
+# permission decorator
 from app.routes.auth import requires_permission
 
 sales_bp = Blueprint('sales', __name__)
 
-# 1. GET ALL SALES (For the Data Table)
+# get all sales
 @sales_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required()
-@requires_permission('view_sales') # <-- Locked: View Only
+@requires_permission('view_sales')
 def get_sales():
     try:
-        # Sort by newest first
+        # sort by newest first
         sales = list(db.sales.find().sort("timestamp", -1))
         for sale in sales:
             sale['_id'] = str(sale['_id'])
@@ -28,17 +28,16 @@ def get_sales():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 2. RECORD A SINGLE SALE (The Mini-POS)
+# record single sale
 @sales_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
-@requires_permission('view_sales') # <-- Using 'view_sales' here as per your initial hierarchy, though 'record_sales' might be better long-term!
+@requires_permission('view_sales')
 def record_sale():
     data = request.get_json()
     product_id = data.get("product_id")
     quantity_sold = int(data.get("quantity", 1))
 
     try:
-        # Check for ObjectId or String ID
         try:
             product = db.products.find_one({"_id": ObjectId(product_id)})
         except:
@@ -47,10 +46,10 @@ def record_sale():
         if not product:
             return jsonify({"error": "Product not found"}), 404
 
-        # Calculate Revenue
+        # calculate revenue
         total_price = float(product.get("price", 0)) * quantity_sold
 
-        # Record Transaction
+        # record new sale
         new_sale = {
             "product_id": str(product["_id"]),
             "product_name": product.get("name"),
@@ -61,20 +60,20 @@ def record_sale():
         }
         db.sales.insert_one(new_sale)
 
-        # THE MAGIC: Deduct from Inventory
+        # deduct from inventory
         recipe = product.get("recipe", [])
         for item in recipe:
             ing_id = item.get("ingredient_id")
             qty_per_item = float(item.get("qty", 0))
             total_deduction = qty_per_item * quantity_sold
 
-            # Deduct the stock
+            # deduct the stock
             try:
                 db.inventory.update_one({"_id": ObjectId(ing_id)}, {"$inc": {"stock": -total_deduction}})
             except:
                 db.inventory.update_one({"_id": ing_id}, {"$inc": {"stock": -total_deduction}})
 
-        # Fire WebSockets to update UI instantly without refresh
+        # web socket
         socketio.emit('sales_changed', {"message": "New sale recorded"})
         socketio.emit('inventory_changed', {"message": "Inventory deducted from sale"})
 
@@ -84,10 +83,10 @@ def record_sale():
         return jsonify({"error": str(e)}), 500
 
 
-# 3. BULK UPLOAD SALES (End-of-day Excel File)
+# bulk upload
 @sales_bp.route('/bulk-import', methods=['POST'])
 @jwt_required()
-@requires_permission('view_sales') # <-- Using 'view_sales' here too.
+@requires_permission('view_sales')
 def bulk_import():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
@@ -113,10 +112,10 @@ def bulk_import():
             product_name = str(row['product_name']).strip()
             quantity = int(row['quantity'])
 
-            # Look up product by name
+            # look up product by name
             product = db.products.find_one({"name": {"$regex": f"^{product_name}$", "$options": "i"}})
             if not product:
-                continue # Skip if product is misspelled in Excel
+                continue # skip if product is misspelled in Excel
 
             total_price = float(product.get("price", 0)) * quantity
 
@@ -129,7 +128,7 @@ def bulk_import():
                 "timestamp": datetime.now()
             })
 
-            # Prepare inventory deductions
+            # prepare inventory deductions
             for item in product.get("recipe", []):
                 ing_id = item.get("ingredient_id")
                 deduction = float(item.get("qty", 0)) * quantity
@@ -139,7 +138,7 @@ def bulk_import():
                 except:
                     inventory_operations.append(UpdateOne({"_id": ing_id}, {"$inc": {"stock": -deduction}}))
 
-        # Execute all updates at once for speed
+        # execute all updates at once for speed
         if sales_to_insert:
             db.sales.insert_many(sales_to_insert)
         if inventory_operations:

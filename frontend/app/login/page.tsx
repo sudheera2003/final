@@ -37,11 +37,11 @@ export default function LoginPage() {
 
         toast.success("Login Success");
 
-        // --- SMART ROUTING ---
+        // dynamic routing
         const perms = data.permissions || [];
-        let targetUrl = "/"; // Default assumption
+        let targetUrl = "/"; // default assumption
 
-        // If they CANNOT see the dashboard, find the first page they CAN see
+        // if user cant see the dashboard, find the first page they can see
         if (!perms.includes("view_dashboard")) {
           if (perms.includes("view_sales")) {
             targetUrl = "/sales";
@@ -72,7 +72,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           
-          {/* Logo Header */}
+          {/* logo header */}
           <div className="flex items-center justify-center gap-2 font-medium">
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Command className="size-4" />
@@ -80,7 +80,7 @@ export default function LoginPage() {
             RestoAI System
           </div>
 
-          {/* Login Card */}
+          {/* login card */}
           <Card className="overflow-hidden w-100">
             <CardContent className="p-6 md:p-8">
               <form onSubmit={handleLogin} className="flex flex-col gap-6">
@@ -93,7 +93,7 @@ export default function LoginPage() {
                 </div>
                 
                 <div className="grid gap-6">
-                  {/* Email Field */}
+                  {/* email field */}
                   <div className="grid gap-2">
                     <label htmlFor="email" className="text-sm font-medium leading-none">
                       Email
@@ -109,7 +109,7 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  {/* Password Field */}
+                  {/* password field */}
                   <div className="grid gap-2">
                     <div className="flex items-center">
                       <label htmlFor="password" className="text-sm font-medium leading-none">
@@ -142,7 +142,7 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {/* Submit Button */}
+                  {/* submit button */}
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? (
                       <>

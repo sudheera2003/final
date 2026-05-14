@@ -7,7 +7,7 @@ export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null)
 
   useEffect(() => {
-    // Connect to your Flask Backend
+    // connect to Flask Backend
     const socketInstance = io(process.env.NEXT_PUBLIC_BACKEND_URL as string)
 
     socketInstance.on("connect", () => {

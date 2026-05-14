@@ -11,7 +11,7 @@ from bson import ObjectId
 
 tickets_bp = Blueprint('tickets', __name__)
 
-# --- 1. SUBMIT A TICKET ---
+# submit support ticket
 @tickets_bp.route('', methods=['POST', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def submit_ticket():
@@ -28,7 +28,7 @@ def submit_ticket():
         if not issue_type or not description:
             return jsonify({"error": "Missing required fields"}), 400
 
-        # 1. Save to database
+        # save database
         now = datetime.now()
         ticket = {
             "user_email": current_user,
@@ -39,13 +39,12 @@ def submit_ticket():
         }
         result = db.tickets.insert_one(ticket)
         
-        # 2. Format variables for the email
-        # Create a professional looking Ticket ID using the date and the last 4 chars of the MongoDB ID
+        # format variables for email
         ticket_id = f"#TKT-{now.strftime('%Y%m%d')}-{str(result.inserted_id)[-4:].upper()}"
         date_str = now.strftime("%b %d, %Y")
         time_str = now.strftime("%I:%M %p")
         
-        # 3. Prepare Email
+        # email details
         sender_email = os.getenv("MAIL_USERNAME")
         sender_password = os.getenv("MAIL_PASSWORD")
         receiver_email = os.getenv("ADMIN_EMAIL")
@@ -56,7 +55,7 @@ def submit_ticket():
             msg['To'] = receiver_email
             msg['Subject'] = f"RestoAI Support Ticket: {issue_type}"
 
-            # 4. The HTML Template
+            # email template
             html_template = """
             <!DOCTYPE html>
             <html lang="en">
@@ -81,7 +80,7 @@ def submit_ticket():
                   margin: 0 auto;
                 }
 
-                /* ─── HEADER ─── */
+                /*header*/
                 .header {
                   background: #1c1917;
                   border-radius: 16px 16px 0 0;
@@ -151,7 +150,7 @@ def submit_ticket():
                   line-height: 1.3;
                 }
 
-                /* ─── BODY ─── */
+                /* body */
                 .body {
                   background: #fffdfa;
                   padding: 40px 40px 32px;
@@ -177,7 +176,7 @@ def submit_ticket():
                   border-bottom: 1px dashed #e7e5e4;
                 }
 
-                /* ─── TICKET DETAILS CARD ─── */
+                /* ticket details card */
                 .details-card {
                   background: #fafaf9;
                   border: 1px solid #e7e5e4;
@@ -255,7 +254,7 @@ def submit_ticket():
                   white-space: pre-wrap;
                 }
 
-                /* ─── INFO PILLS ─── */
+                /* info pills */
                 .info-row {
                   display: flex;
                   gap: 12px;
@@ -295,7 +294,7 @@ def submit_ticket():
                   color: #1c1917;
                 }
 
-                /* ─── FOOTER ─── */
+                /* footer */
                 .footer {
                   background: #1c1917;
                   border-radius: 0 0 16px 16px;
@@ -404,14 +403,13 @@ def submit_ticket():
             </html>
             """
 
-            # 5. Inject the real data into the HTML string safely
+            # inject real values to template
             html_content = html_template.replace("{{TICKET_ID}}", ticket_id) \
                                         .replace("{{DATE}}", date_str) \
                                         .replace("{{TIME}}", time_str) \
                                         .replace("{{ISSUE_TYPE}}", issue_type) \
                                         .replace("{{DESCRIPTION}}", description)
 
-            # Change from 'plain' to 'html'
             msg.attach(MIMEText(html_content, 'html'))
 
             server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -428,7 +426,7 @@ def submit_ticket():
         return jsonify({"error": "Failed to submit ticket."}), 500
 
 
-# --- 2. GET ALL TICKETS (For Admins) ---
+# get all tickets
 @tickets_bp.route('', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 @requires_permission('manage_tickets')
@@ -437,7 +435,7 @@ def get_tickets():
         return jsonify({}), 200
         
     try:
-        # Sort by newest first
+        # sort by newest first
         tickets = list(db.tickets.find().sort("timestamp", -1))
         for t in tickets:
             t['_id'] = str(t['_id'])
@@ -446,7 +444,7 @@ def get_tickets():
         return jsonify({"error": "Failed to fetch tickets"}), 500
 
 
-# --- 3. UPDATE TICKET STATUS ---
+# update ticket status
 @tickets_bp.route('/<ticket_id>/status', methods=['PUT', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 @requires_permission('edit_ticket_status')
@@ -473,7 +471,7 @@ def update_ticket_status(ticket_id):
     except Exception as e:
         return jsonify({"error": "Failed to update status"}), 500
     
-# --- 4. DELETE TICKET ---
+# delete ticket
 @tickets_bp.route('/<ticket_id>', methods=['DELETE', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 @requires_permission('delete_tickets')

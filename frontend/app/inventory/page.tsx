@@ -37,8 +37,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-// Shadcn UI Imports
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,10 +45,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileUpload } from "@/components/file-upload"; 
 
-// --- 1. IMPORT YOUR SECURITY HOOK ---
+// import permission hook
 import { usePermissions } from "@/hooks/use-permissions";
 
-// --- TYPES ---
+// types
 export type Ingredient = {
   _id: string;
   name: string;
@@ -69,7 +67,7 @@ export default function InventoryPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   
-  // --- DIALOG & UPLOAD STATES ---
+  // dialog and upload states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Ingredient | null>(null);
@@ -78,10 +76,10 @@ export default function InventoryPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  // initialize permissions hook
   const { hasPermission } = usePermissions();
 
-  // --- FETCH DATA ---
+  // fetch data
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -111,7 +109,7 @@ export default function InventoryPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- HANDLERS ---
+  // handlers
   const handleConfirmUpload = async () => {
     if (files.length === 0) return;
     const file = files[0];
@@ -236,7 +234,7 @@ export default function InventoryPage() {
     }
   };
 
-  // --- COLUMNS DEFINITION ---
+  // columns definition
   const columns: ColumnDef<Ingredient>[] = [
     {
       accessorKey: "name",
@@ -299,7 +297,6 @@ export default function InventoryPage() {
       accessorKey: "supplier",
       header: "Reviewer (Supplier)",
     },
-    // --- SECURED: ONLY RENDER ACTIONS IF THEY CAN EDIT OR DELETE ---
     ...(hasPermission("edit_inventory") || hasPermission("delete_inventory") ? [{
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -307,7 +304,7 @@ export default function InventoryPage() {
         const item = row.original;
         return (
           <div className="flex items-center gap-2 justify-center">
-            {/* SECURED: EDIT BUTTON */}
+            {/* edit button */}
             {hasPermission("edit_inventory") && (
               <Button 
                 variant="ghost" 
@@ -319,7 +316,7 @@ export default function InventoryPage() {
               </Button>
             )}
 
-            {/* SECURED: DELETE BUTTON */}
+            {/* delete button */}
             {hasPermission("delete_inventory") && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -358,7 +355,7 @@ export default function InventoryPage() {
     }] : []),
   ];
 
-  // --- TABLE INITIALIZATION ---
+  // table initialization
   const table = useReactTable({
     data,
     columns,
@@ -453,7 +450,7 @@ export default function InventoryPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* SECURED: ADD DIALOG */}
+          {/* add dialog */}
           {hasPermission("add_inventory") && (
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
@@ -510,7 +507,7 @@ export default function InventoryPage() {
             </Dialog>
           )}
 
-          {/* EDIT DIALOG (Does not need to be wrapped, as the button to open it is inside the secured column) */}
+          {/* edit dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent>
               <DialogHeader>
@@ -565,7 +562,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* DATA TABLE */}
+      {/* data table */}
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
@@ -601,7 +598,7 @@ export default function InventoryPage() {
         </Table>
       </div>
 
-      {/* PAGINATION */}
+      {/* pagination */}
       <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
         <div>
           {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.

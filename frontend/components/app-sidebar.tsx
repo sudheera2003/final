@@ -29,10 +29,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// --- 1. IMPORT YOUR SECURITY HOOK ---
+// import permission hook
 import { usePermissions } from "@/hooks/use-permissions";
 
-// --- 2. ADD PERMISSION REQUIREMENTS TO EACH ROUTE ---
+// add permission to each route
 const data = {
   user: {
     name: "shadcn",
@@ -44,7 +44,7 @@ const data = {
       title: "Dashboard",
       url: "/",
       icon: <LayoutDashboardIcon />,
-      permission: "view_dashboard", // <--- Required Key
+      permission: "view_dashboard", // <--- required Key
     },
     {
       title: "Sales",
@@ -82,7 +82,7 @@ const data = {
       title: "Get Help",
       url: "/help",
       icon: <CircleHelpIcon />,
-      // No permission required, visible to everyone
+      // no permission required, visible to everyone
     },
   ],
   documents: [
@@ -102,11 +102,11 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  // --- 3. INITIALIZE HOOK ---
+  //initialize hook
   const { hasPermission, isLoaded } = usePermissions();
 
-  // --- 4. FILTER THE ARRAYS BEFORE RENDERING ---
-  // If an item has a permission, check if the user has it. If no permission is set, always show it.
+  // filter the array before rendering
+  // if an item has a permission, check if the user has it. if no permission is set, always show it.
   const filteredNavMain = data.navMain.filter(
     (item) => !item.permission || hasPermission(item.permission),
   );
@@ -134,7 +134,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {/* Pass the FILTERED arrays down to the components */}
+        {/* pass the filtered array */}
         <NavMain items={filteredNavMain} />
         <NavDocuments items={filteredDocuments} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />

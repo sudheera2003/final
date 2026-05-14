@@ -1,7 +1,7 @@
 import os
 import tempfile
 import pandas as pd
-from app.routes.auth import requires_permission # <-- Fixed import path
+from app.routes.auth import requires_permission
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from pymongo import UpdateOne
@@ -11,10 +11,10 @@ from bson import ObjectId
 
 inventory_bp = Blueprint('inventory', __name__)
 
-# 1. GET ALL INGREDIENTS
+# get all ingredients
 @inventory_bp.route('', methods=['GET'], strict_slashes=False)
 @jwt_required()
-@requires_permission('view_inventory') # <-- Locked: View Only
+@requires_permission('view_inventory')
 def get_inventory():
     try:
         items = list(db.inventory.find())
@@ -25,10 +25,10 @@ def get_inventory():
         return jsonify({"error": str(e)}), 500
 
 
-# 2. ADD SINGLE INGREDIENT
+# add single ingredient
 @inventory_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
-@requires_permission('add_inventory') # <-- Locked: Add Only
+@requires_permission('add_inventory')
 def add_ingredient():
     data = request.get_json()
     if db.inventory.find_one({"name": data.get("name")}):
@@ -51,10 +51,10 @@ def add_ingredient():
     return jsonify({"message": "Ingredient added successfully"}), 201
 
 
-# 3. BULK IMPORT / UPDATE VIA EXCEL
+# bulk import
 @inventory_bp.route('/bulk-import', methods=['POST'])
 @jwt_required()
-@requires_permission('add_inventory') # <-- Locked: Bulk Add
+@requires_permission('add_inventory')
 def bulk_import():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
@@ -112,10 +112,10 @@ def bulk_import():
             os.remove(temp_path)
             
             
-# 4. DELETE INGREDIENT
+# delete ingredient
 @inventory_bp.route('/<item_id>', methods=['DELETE'])
 @jwt_required()
-@requires_permission('delete_inventory') # <-- Locked: Delete Only
+@requires_permission('delete_inventory')
 def delete_ingredient(item_id):
     try:
         result = db.inventory.delete_one({"_id": item_id})
@@ -133,10 +133,10 @@ def delete_ingredient(item_id):
         return jsonify({"error": str(e)}), 500
     
     
-# 5. EDIT/UPDATE INGREDIENT
+# edit ingredient
 @inventory_bp.route('/<item_id>', methods=['PUT'])
 @jwt_required()
-@requires_permission('edit_inventory') # <-- Locked: Edit Only
+@requires_permission('edit_inventory')
 def update_ingredient(item_id):
     data = request.get_json()
     

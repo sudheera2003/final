@@ -8,15 +8,15 @@ import tempfile
 import pandas as pd
 from pymongo import UpdateOne
 
-# --- IMPORT THE PERMISSION DECORATOR ---
+# import permission decorator
 from app.routes.auth import requires_permission
 
 products_bp = Blueprint('products', __name__)
 
-# 1. GET ALL PRODUCTS
+# get all products
 @products_bp.route('/', methods=['GET'], strict_slashes=False)
 @jwt_required()
-@requires_permission('view_products') # <-- Locked: View Only
+@requires_permission('view_products')
 def get_products():
     try:
         items = list(db.products.find())
@@ -26,10 +26,10 @@ def get_products():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 2. ADD PRODUCT & RECIPE
+# add product and recipe
 @products_bp.route('/', methods=['POST'], strict_slashes=False)
 @jwt_required()
-@requires_permission('add_products') # <-- Locked: Add Only
+@requires_permission('add_products')
 def add_product():
     data = request.get_json()
     
@@ -40,7 +40,7 @@ def add_product():
         "name": data.get("name"),
         "category": data.get("category", "General"),
         "price": float(data.get("price", 0)),
-        "recipe": data.get("recipe", []), # This holds the ingredients!
+        "recipe": data.get("recipe", []), # this holds the ingredients
         "lastUpdated": datetime.now()
     }
     
@@ -48,10 +48,10 @@ def add_product():
     socketio.emit('products_changed', {"message": "New product added"})
     return jsonify({"message": "Product added successfully"}), 201
 
-# 3. UPDATE PRODUCT
+# update product
 @products_bp.route('/<product_id>', methods=['PUT'])
 @jwt_required()
-@requires_permission('edit_products') # <-- Locked: Edit Only
+@requires_permission('edit_products')
 def update_product(product_id):
     data = request.get_json()
     
@@ -77,10 +77,10 @@ def update_product(product_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 4. DELETE PRODUCT
+# delete product
 @products_bp.route('/<product_id>', methods=['DELETE'])
 @jwt_required()
-@requires_permission('delete_products') # <-- Locked: Delete Only
+@requires_permission('delete_products')
 def delete_product(product_id):
     try:
         result = db.products.delete_one({"_id": product_id})
@@ -97,10 +97,10 @@ def delete_product(product_id):
         return jsonify({"error": str(e)}), 500
     
     
-# 5. BULK IMPORT PRODUCTS & RECIPES VIA EXCEL
+# bulk import
 @products_bp.route('/bulk-import', methods=['POST'])
 @jwt_required()
-@requires_permission('add_products') # <-- Locked: Bulk Add
+@requires_permission('add_products')
 def bulk_import():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
@@ -116,14 +116,14 @@ def bulk_import():
         df = pd.read_excel(temp_path)
         df.columns = df.columns.str.strip().str.lower()
 
-        # Check required columns
+        # check required columns
         required_cols = {'product_name', 'category', 'price', 'ingredient_name', 'qty'}
         if not required_cols.issubset(df.columns):
             return jsonify({"error": f"Missing columns. Required: {', '.join(required_cols)}"}), 400
 
         bulk_operations = []
         
-        # Group the excel rows by product_name so we can build the recipe array
+        # group the excel rows by product_name so i can build the recipe array
         grouped = df.groupby('product_name')
 
         for product_name, group in grouped:
@@ -133,12 +133,12 @@ def bulk_import():
             
             recipe = []
             
-            # Loop through the rows for this specific product to get ingredients
+            # loop through the rows for this specific product to get ingredients
             for _, row in group.iterrows():
                 ing_name = str(row['ingredient_name']).strip()
                 qty = float(row['qty'])
                 
-                # Look up the ingredient in the inventory collection by name (case-insensitive)
+                # look up the ingredient in the inventory collection by name
                 inv_item = db.inventory.find_one({"name": {"$regex": f"^{ing_name}$", "$options": "i"}})
                 
                 if inv_item:
@@ -146,9 +146,9 @@ def bulk_import():
                         "ingredient_id": str(inv_item['_id']),
                         "qty": qty
                     })
-                # If ingredient isn't in inventory, we just skip it for now to avoid crashes
+                # if ingredient isnt in inventory, just skip it for now to avoid crashes
             
-            # Upsert Product (Create if new, update if exists)
+            # upsert product
             bulk_operations.append(
                 UpdateOne(
                     {"name": product_name},

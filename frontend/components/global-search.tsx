@@ -25,7 +25,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
-// --- 1. IMPORT YOUR SECURITY HOOK ---
+// permissions hook
 import { usePermissions } from "@/hooks/use-permissions";
 
 export function GlobalSearch() {
@@ -33,10 +33,10 @@ export function GlobalSearch() {
   const [inventory, setInventory] = useState<any[]>([]);
   const router = useRouter();
   
-  // --- 2. INITIALIZE HOOK ---
+  // initialize hook
   const { hasPermission } = usePermissions();
 
-  // Listen for Ctrl+K or Cmd+K
+  // listen for Ctrl+K or Cmd+K
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -48,9 +48,9 @@ export function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Fetch live inventory when the modal opens
+  // fetch live inventory when the modal opens
   useEffect(() => {
-    // --- 3. SECURE THE FETCH: Only ping the DB if they have inventory access ---
+    // only ping the DB if they have inventory access
     if (open && inventory.length === 0 && hasPermission("view_inventory")) {
       const fetchInventory = async () => {
         try {
@@ -74,7 +74,7 @@ export function GlobalSearch() {
     }
   }, [open, inventory.length, hasPermission]);
 
-  // Helper to close modal and navigate
+  // helper to close modal and navigate
   const runCommand = (command: () => void) => {
     setOpen(false);
     command();
@@ -82,7 +82,7 @@ export function GlobalSearch() {
 
   return (
     <>
-      {/* THE SIDEBAR BUTTON */}
+      {/* sidebar button */}
       <button
         onClick={() => setOpen(true)}
         className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted/50 w-full text-left outline-none"
@@ -94,7 +94,7 @@ export function GlobalSearch() {
         </kbd>
       </button>
 
-      {/* THE POPUP MODAL */}
+      {/* popup modal */}
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>
           <CommandInput placeholder="Search a directory or inventory..." />
@@ -102,7 +102,7 @@ export function GlobalSearch() {
             <CommandEmpty>No results found.</CommandEmpty>
 
             <CommandGroup heading="Quick Navigation">
-              {/* --- 4. CONDITIONALLY RENDER EACH ITEM --- */}
+              {/* conditionally render each item */}
               {hasPermission("view_dashboard") && (
                 <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
                   <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -130,8 +130,7 @@ export function GlobalSearch() {
                   <span>Products</span>
                 </CommandItem>
               )}
-              
-              {/* Assuming Chatbot is accessible to everyone, but you can wrap this too if needed */}
+            
               <CommandItem onSelect={() => runCommand(() => router.push("/chat"))}>
                 <Bot className="mr-2 h-4 w-4 text-primary" />
                 <span className="text-primary font-medium">RestoAI Chat-Bot</span>
@@ -141,7 +140,6 @@ export function GlobalSearch() {
             <CommandSeparator />
 
             <CommandGroup heading="System & Help">
-              {/* Help is usually global */}
               <CommandItem onSelect={() => runCommand(() => router.push("/help"))}>
                 <HelpCircle className="mr-2 h-4 w-4" />
                 <span>Get Help / Documentation</span>
@@ -155,7 +153,6 @@ export function GlobalSearch() {
               )}
             </CommandGroup>
 
-            {/* ONLY RENDER INVENTORY SEARCH IF THEY HAVE PERMISSION */}
             {hasPermission("view_inventory") && inventory.length > 0 && (
               <>
                 <CommandSeparator />

@@ -13,7 +13,7 @@ export default function UsersPage() {
 
   const socket = useSocket() 
 
-  // 1. Fetch Initial Data
+  // fetch initial data
   useEffect(() => {
     async function fetchData() {
       try {
@@ -28,7 +28,7 @@ export default function UsersPage() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` // <--- THE MISSING PIECE!
+            "Authorization": `Bearer ${token}`
           }
         })
         
@@ -55,23 +55,23 @@ export default function UsersPage() {
     fetchData()
   }, [])
 
-  // 2. Real-Time Updates (The Logic)
+  // real time updates
   useEffect(() => {
     if (!socket) return
 
-    // EVENT: User Created
+    // user create
     socket.on("user_created", (newUser: User) => {
       console.log("New User Created:", newUser)
       setData((prev) => [...prev, newUser])
     })
 
-    // EVENT: User Deleted
+    // user delete
     socket.on("user_deleted", (data: { _id: string }) => {
       console.log("User Deleted:", data._id)
       setData((prev) => prev.filter((user) => user._id !== data._id))
     })
 
-    // Cleanup listeners when page unmounts
+    // cleanup listeners when page unmounts
     return () => {
       socket.off("user_created")
       socket.off("user_deleted")

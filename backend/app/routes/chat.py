@@ -21,7 +21,7 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 if gemini_api_key:
     genai.configure(api_key=gemini_api_key)
 
-# ─── 1. GET ALL CHAT SESSIONS ──────────────────────────────────────
+# get all chat sessions
 @chat_bp.route('/sessions', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def get_sessions():
@@ -53,7 +53,7 @@ def get_sessions():
         return jsonify({"error": str(e)}), 500
 
 
-# ─── 2. GET HISTORY FOR A SPECIFIC SESSION ─────────────────────────────────────
+# set history for selected session
 @chat_bp.route('/history/<session_id>', methods=['GET', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def get_history(session_id):
@@ -70,7 +70,7 @@ def get_history(session_id):
         return jsonify({"error": str(e)}), 500
 
 
-# ─── 3. DELETE A CHAT SESSION ──────────────────────────────────────────────────
+# delete chat
 @chat_bp.route('/<session_id>', methods=['DELETE', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def delete_session(session_id):
@@ -84,7 +84,7 @@ def delete_session(session_id):
         return jsonify({"error": str(e)}), 500
 
 
-# ─── 4. LIVE CHAT ROUTE ────────────────────────────────────────────────────────
+# live chat route
 @chat_bp.route('', methods=['POST', 'OPTIONS'], strict_slashes=False)
 @jwt_required()
 def chat_with_ai():
@@ -118,7 +118,7 @@ def chat_with_ai():
 
         print(f" Processing chat for: {user_message[:50]}...")
 
-        # --- A. GATHER LIVE INVENTORY (Safer approach) ---
+        # get live inventory
         low_stock_items = []
         for item in db.inventory.find():
             stock = float(item.get('stock', 0))
@@ -128,7 +128,7 @@ def chat_with_ai():
         
         low_stock_text = ", ".join(low_stock_items) if low_stock_items else "All inventory levels are healthy."
 
-        # --- B. GATHER SALES CONTEXT ---
+        # get sales data
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
         pipeline = [
@@ -141,7 +141,7 @@ def chat_with_ai():
         top_3_items = [f"{item['_id']} ({item['total_sold']} sold)" for item in recent_sales[:3]]
         top_items_text = ", ".join(top_3_items) if top_3_items else "No recent sales."
 
-        # --- C. GATHER TOMORROW'S EXACT PROPHET FORECAST ---
+        # get tomorrow forecast
         tomorrow_forecast_text = "Forecast unavailable."
         try:
             sales_cursor = db.sales.find({}, {"timestamp": 1, "total_price": 1})
@@ -166,7 +166,7 @@ def chat_with_ai():
         except Exception as e:
             print(" Warning: Prophet ML failed inside chat route:", str(e))
 
-        # --- D. INJECT INTO GEMINI ---
+        # inject into gemini
         full_prompt = f"""
         System: You are 'RestoAI', the management assistant for Lady Hill Hotel. 
         Use LKR for currency. Use Markdown formatting. Keep answers concise.
@@ -192,7 +192,7 @@ def chat_with_ai():
                 response = model.generate_content(full_prompt)
                 if response and hasattr(response, 'text'):
                     ai_reply = response.text
-                    print(f"✅ Success using model: {model_name}")
+                    print(f"Success using model: {model_name}")
                     break 
             except Exception as e:
                 print(f" Gemini model {model_name} failed: {e}")
@@ -208,10 +208,10 @@ def chat_with_ai():
             })
             return jsonify({"reply": ai_reply, "session_id": session_id}), 200
         else:
-            print("❌ ERROR: All Gemini AI models failed to respond.")
+            print("error: All gemini AI models failed to respond.")
             return jsonify({"error": "AI models unavailable."}), 500
 
     except Exception as e:
-        print("\n CRITICAL CHAT ERROR:")
+        print("\n critical chat error:")
         traceback.print_exc() # Prints the exact line number of the crash
-        return jsonify({"error": f"Backend Error: {str(e)}"}), 500
+        return jsonify({"error": f"Backend error: {str(e)}"}), 500

@@ -3,7 +3,7 @@ import json
 import pandas as pd
 from datetime import datetime
 
-# --- IMPORTS FOR APPLICATION FACTORY ---
+# imports for application factory
 from app import create_app
 from app.extensions import bcrypt, db 
 
@@ -23,9 +23,7 @@ class RestoAITestSuite(unittest.TestCase):
         """Clean up after each test."""
         self.app_context.pop()
 
-    # ==========================================
-    # UNIT TESTS (Isolated Logic & Data Processing)
-    # ==========================================
+    # unit tests
 
     def test_tc01_password_hashing(self):
         """TC-01: Verify bcrypt securely hashes and validates passwords."""
@@ -43,23 +41,23 @@ class RestoAITestSuite(unittest.TestCase):
 
     def test_tc03_pandas_sanitize_nulls(self):
         """TC-03: Verify Pandas logic removes missing sales entries (Data Cleaning)."""
-        # Simulating the raw Excel upload DataFrame
+        # simulating the raw excel upload dataframe
         raw_data = pd.DataFrame({'itemname': ['Burger', None, 'Pizza'], 'qty': [2, 5, None]})
         
-        # Simulating your backend sanitize function dropping nulls
+        # simulating backend sanitize function dropping nulls
         cleaned_df = raw_data.dropna()
         
-        self.assertEqual(len(cleaned_df), 1)  # Only the valid 'Burger' row should remain
-        self.assertFalse(cleaned_df.isnull().values.any()) # Proves no nulls exist
+        self.assertEqual(len(cleaned_df), 1)  # only the valid 'Burger' row should remain
+        self.assertFalse(cleaned_df.isnull().values.any()) # proves no nulls exist
 
     def test_tc04_pandas_date_formatting(self):
         """TC-04: Verify Pandas standardizes erratic date strings to ISO format."""
         raw_data = pd.DataFrame({'date': ['12/31/2025', '2025-12-31']})
         
-        # Simulating backend date standardization (FIX: added format='mixed')
+        # simulating backend date standardization (FIX: added format='mixed')
         raw_data['date'] = pd.to_datetime(raw_data['date'], format='mixed')
         
-        # Both different string formats should now perfectly match the standardized datetime
+        # both different string formats should perfectly match the standardized datetime
         self.assertEqual(raw_data.iloc[0]['date'], raw_data.iloc[1]['date'])
 
     def test_tc05_recipe_deduction_math(self):
@@ -67,44 +65,43 @@ class RestoAITestSuite(unittest.TestCase):
         recipe = [{"ingredient_id": "inv_bun", "qty": 1}, {"ingredient_id": "inv_lettuce", "qty": 20}]
         quantity_sold = 5
         
-        # Simulating your calculation loop
+        # simulating calculation loop
         deductions = {item['ingredient_id']: item['qty'] * quantity_sold for item in recipe}
         
         self.assertEqual(deductions["inv_bun"], 5)
         self.assertEqual(deductions["inv_lettuce"], 100)
 
-    # ==========================================
-    # INTEGRATION TESTS (API, Database & ML Flow)
-    # ==========================================
+    # integration tests
 
     def test_tc06_api_valid_login(self):
         """TC-06: Test /login route integrates with DB and accepts valid formats."""
         payload = {"email": "admin@ladyhill.com", "password": "valid_password"}
         response = self.app.post('/login', data=json.dumps(payload), content_type='application/json')
-        # Asserting it hits the route without a server crash (500 error)
+        # asserting it hits the route without a server crash (500 error)
         self.assertIn(response.status_code, [200, 401, 404, 308])
 
     def test_tc07_api_invalid_login(self):
         """TC-07: Test /login route rejects bad credentials."""
         payload = {"email": "admin@ladyhill.com", "password": "wrong_password"}
         response = self.app.post('/login', data=json.dumps(payload), content_type='application/json')
+        # asserting it rejects bad credentials
         self.assertIn(response.status_code, [401, 404, 308])
 
     def test_tc08_inventory_route_integration(self):
         """TC-08: Verify inventory endpoint successfully connects to NoSQL database."""
-        # Tests the GET route for your inventory list
+        # tests the GET route for your inventory list
         response = self.app.get('/inventory') 
-        self.assertNotEqual(response.status_code, 500) # Ensures DB connection doesn't crash the route
+        self.assertNotEqual(response.status_code, 500) # make sure db connection doesnt crash the route
 
     def test_tc09_prophet_dataframe_structure(self):
         """TC-09: Verify data integrates cleanly into Facebook Prophet required schema."""
-        # Prophet strictly requires columns named 'ds' (datestamp) and 'y' (value)
+        # prophet strictly requires columns named 'ds' (datestamp) and 'y' (value)
         mock_history = pd.DataFrame({
             'date': pd.date_range(start='1/1/2025', periods=5),
             'sales': [10, 15, 12, 18, 20]
         })
         
-        # Simulating integration pipeline mapping
+        # simulating integration pipeline mapping
         prophet_df = mock_history.rename(columns={'date': 'ds', 'sales': 'y'})
         
         self.assertIn('ds', prophet_df.columns)
@@ -112,10 +109,10 @@ class RestoAITestSuite(unittest.TestCase):
         self.assertEqual(len(prophet_df), 5)
 
     def test_tc10_chatbot_api_route(self):
-        """TC-10: Verify the Flask API correctly routes prompts to OpenAI integration."""
+        """TC-10: Verify the Flask API correctly routes prompts to Gemini API integration."""
         payload = {"prompt": "What items are low in stock?"}
         response = self.app.post('/chat', data=json.dumps(payload), content_type='application/json')
-        # Verify the endpoint exists and handles the POST request
+        # verify the endpoint exists and handles the POST request
         self.assertNotEqual(response.status_code, 500)
 
 if __name__ == '__main__':

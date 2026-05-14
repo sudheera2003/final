@@ -22,7 +22,7 @@ export function NavMain({
 }) {
   const pathname = usePathname()
 
-  // Auto-hide the entire group if there are no items they are allowed to see
+  // auto-hide the entire group if there are no items they are allowed to see
   if (items.length === 0) return null;
 
   return (

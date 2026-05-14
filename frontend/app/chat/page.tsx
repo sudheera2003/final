@@ -29,7 +29,7 @@ type ChatSession = {
 };
 
 export default function ChatbotPage() {
-  // --- STATE ---
+  // states
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
@@ -41,12 +41,12 @@ export default function ChatbotPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll
+  // auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, isLoadingHistory]);
 
-  // --- 1. LOAD SIDEBAR SESSIONS ---
+  // sidebar sessions
   const fetchSessions = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -65,7 +65,7 @@ export default function ChatbotPage() {
     }
   };
 
-  // --- 2. LOAD SPECIFIC CHAT HISTORY ---
+  // load specific chat history
   const loadChatHistory = async (sessionId: string) => {
     setIsLoadingHistory(true);
     setCurrentSessionId(sessionId);
@@ -97,14 +97,14 @@ export default function ChatbotPage() {
     }
   };
 
-  // Initial Load: Fetch sidebar
+  // initial load
   useEffect(() => {
     fetchSessions().then(() => setIsLoadingHistory(false));
-    // Start with a blank default screen
+    // start with a blank default screen
     handleNewChat();
   }, []);
 
-  // --- 3. CREATE NEW CHAT ---
+  // create new chat
   const handleNewChat = () => {
     setCurrentSessionId(null);
     setMessages([
@@ -116,9 +116,9 @@ export default function ChatbotPage() {
     ]);
   };
 
-  // --- 4. DELETE CHAT ---
+  // delete chat
   const handleDeleteChat = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent clicking the row behind the button
+    e.stopPropagation(); // prevent clicking the row behind the button
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -131,9 +131,9 @@ export default function ChatbotPage() {
 
       if (res.ok) {
         toast.success("Chat deleted");
-        fetchSessions(); // Refresh sidebar
+        fetchSessions(); // refresh sidebar
         if (currentSessionId === sessionId) {
-          handleNewChat(); // If they deleted the active chat, clear the screen
+          handleNewChat(); // if deleted active chat, clear the screen
         }
       }
     } catch (error) {
@@ -141,7 +141,7 @@ export default function ChatbotPage() {
     }
   };
 
-  // --- 5. SEND MESSAGE ---
+  // send message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -163,7 +163,7 @@ export default function ChatbotPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          // Send the current session ID (if null, backend will create a new one)
+          // send the current session ID (if null, backend will create a new one)
           body: JSON.stringify({
             message: userMsg,
             session_id: currentSessionId,
@@ -179,10 +179,10 @@ export default function ChatbotPage() {
           { role: "assistant", content: data.reply },
         ]);
 
-        // If this was a new chat, the backend just created an ID. Save it!
+        // if this was a new chat, the backend just created an ID
         if (!currentSessionId && data.session_id) {
           setCurrentSessionId(data.session_id);
-          fetchSessions(); // Refresh the sidebar so the new chat appears
+          fetchSessions(); // refresh the sidebar so the new chat appears
         }
       } else {
         toast.error(data.error || "Failed to get AI response");
@@ -196,7 +196,7 @@ export default function ChatbotPage() {
 
   return (
     <div className="flex w-full h-[calc(100vh-80px)] bg-background overflow-hidden">
-      {/* ─── SIDEBAR (GEMINI STYLE) ─── */}
+      {/* sidebar*/}
       <div className="w-64 border-r bg-muted/10 hidden md:flex flex-col shrink-0">
         <div className="p-4">
           <Button
@@ -249,9 +249,9 @@ export default function ChatbotPage() {
         </ScrollArea>
       </div>
 
-      {/* ─── MAIN CHAT AREA ─── */}
+      {/* main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* HEADER */}
+        {/* header */}
         <div className="border-b bg-background/95 backdrop-blur px-6 py-4 flex items-center justify-between shrink-0">
           <div>
             <h1 className="text-lg font-semibold leading-none mb-1 text-(--primary)">
@@ -263,7 +263,7 @@ export default function ChatbotPage() {
           </div>
         </div>
 
-        {/* CHAT MESSAGES */}
+        {/* chat messages */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-muted/5">
           <div className="max-w-4xl mx-auto space-y-6 pb-4">
             {isLoadingHistory ? (
@@ -333,7 +333,7 @@ export default function ChatbotPage() {
           </div>
         </div>
 
-        {/* INPUT AREA */}
+        {/* input area */}
         <div className="p-4 bg-background border-t shrink-0">
           <div className="max-w-4xl mx-auto">
             <form

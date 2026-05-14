@@ -31,7 +31,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-// --- 1. IMPORT YOUR SECURITY HOOK ---
+// import permission hook
 import { usePermissions } from "@/hooks/use-permissions"
 
 type RoleOption = {
@@ -64,7 +64,7 @@ export function NavDocuments({
 
   const pathname = usePathname()
 
-  // --- 2. INITIALIZE HOOK ---
+  // initialize permission hook
   const { hasPermission } = usePermissions()
 
   useEffect(() => {
@@ -130,8 +130,7 @@ export function NavDocuments({
     }
   }
 
-  // --- 3. AUTO-HIDE EMPTY GROUPS ---
-  // If they have no items in the list AND they lack the permission to add users, hide the whole section!
+  // auto hide empty gruops
   if (items.length === 0 && !hasPermission("user_management")) {
     return null; 
   }
@@ -141,7 +140,7 @@ export function NavDocuments({
       <SidebarGroupLabel>User Management</SidebarGroupLabel>
       <SidebarMenu>
         
-        {/* --- 4. SECURE THE ADD USER BUTTON --- */}
+        {/* add user button */}
         {hasPermission("user_management") && (
           <SidebarMenuItem>
             <Dialog open={open} onOpenChange={setOpen}>
@@ -217,8 +216,6 @@ export function NavDocuments({
             </Dialog>
           </SidebarMenuItem>
         )}
-
-        {/* The mapping is already filtered by app-sidebar.tsx! */}
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild isActive={pathname === item.url}>

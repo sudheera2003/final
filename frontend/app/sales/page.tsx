@@ -28,7 +28,6 @@ import {
   X
 } from "lucide-react";
 
-// Shadcn UI Imports
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +36,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileUpload } from "@/components/file-upload";
 
-// --- 1. IMPORT YOUR SECURITY HOOK ---
+// import permissions hook
 import { usePermissions } from "@/hooks/use-permissions";
 
-// --- TYPES ---
+// types
 export type Ingredient = { _id: string; name: string; unit: string; unit_price: number; };
 export type RecipeItem = { ingredient_id: string; qty: number; };
 export type Product = { _id: string; name: string; category: string; price: number; recipe: RecipeItem[]; };
@@ -52,24 +51,24 @@ export default function SalesPage() {
   const [inventory, setInventory] = useState<Ingredient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // --- TABLE STATES ---
+  // table states
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // --- MINI-POS STATES ---
+  // mini pos states
   const [selectedProductId, setSelectedProductId] = useState("");
   const [saleQuantity, setSaleQuantity] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- UPLOAD STATES ---
+  // upload states
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // --- 2. INITIALIZE THE SECURITY HOOK ---
+  // initialize permission hook
   const { hasPermission } = usePermissions();
 
-  // --- FETCH DATA ---
+  // fetch data
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -103,7 +102,7 @@ export default function SalesPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- HELPER: CALCULATE COST ---
+  // calculate cost
   const getProductCost = (productId: string) => {
     const product = products.find(p => p._id === productId);
     if (!product || !product.recipe) return 0;
@@ -114,7 +113,7 @@ export default function SalesPage() {
     }, 0);
   };
 
-  // --- SUMMARY METRICS (TODAY) ---
+  // today summary
   const today = new Date().setHours(0, 0, 0, 0);
   const todaySales = sales.filter(s => new Date(s.timestamp).setHours(0, 0, 0, 0) === today);
   
@@ -126,7 +125,7 @@ export default function SalesPage() {
     return sum + (sale.total_price - totalCost);
   }, 0);
 
-  // --- HANDLERS ---
+  // handlers
   const handleRecordSale = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || saleQuantity < 1) return toast.error("Select a product and valid quantity");
@@ -187,7 +186,7 @@ export default function SalesPage() {
     }
   };
 
-  // --- COLUMNS DEFINITION ---
+  // column definitions
   const columns: ColumnDef<Sale>[] = [
     {
       accessorKey: "timestamp",
@@ -217,7 +216,6 @@ export default function SalesPage() {
       header: "Revenue",
       cell: ({ row }) => <div className="font-bold text-foreground">LKR.{Number(row.getValue("total_price")).toFixed(2)}</div>,
     },
-    // --- SECURED COLUMN: ONLY SHOW EST. PROFIT IF PERMITTED ---
     ...(hasPermission("show_profit_margins") ? [{
       id: "profit",
       header: "Est. Profit",
@@ -237,7 +235,7 @@ export default function SalesPage() {
     }] : []),
   ];
 
-  // --- TABLE INITIALIZATION ---
+  // table initialization
   const table = useReactTable({
     data: sales,
     columns,
@@ -253,11 +251,11 @@ export default function SalesPage() {
   return (
     <div className="p-6 space-y-6">
       
-      {/* TOP DASHBOARD CARDS */}
-      {/* Dynamically adjust the grid columns based on how many cards are visible */}
+      {/* top dashboard cards */}
+      {/* dynamically adjust the grid columns based on how many cards visible */}
       <div className={`grid gap-4 ${hasPermission("show_revenue") || hasPermission("show_profit_margins") ? "md:grid-cols-3" : "md:grid-cols-1"}`}>
         
-        {/* SECURED: REVENUE CARD */}
+        {/* revenue card */}
         {hasPermission("show_revenue") && (
           <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
             <div className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -268,7 +266,7 @@ export default function SalesPage() {
           </div>
         )}
         
-        {/* ALWAYS VISIBLE (Or you could wrap this in view_sales) */}
+        {/* always visible */}
         <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
           <div className="flex flex-row items-center justify-between pb-2 space-y-0">
             <h3 className="tracking-tight text-sm font-medium">Items Sold Today</h3>
@@ -277,7 +275,7 @@ export default function SalesPage() {
           <div className="text-2xl font-bold">{itemsSoldToday} items</div>
         </div>
 
-        {/* SECURED: PROFIT CARD */}
+        {/* profit card */}
         {hasPermission("show_profit_margins") && (
           <div className="rounded-xl border bg-card text-card-foreground shadow p-6 flex flex-col justify-between">
             <div className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -291,10 +289,10 @@ export default function SalesPage() {
         )}
       </div>
 
-      {/* ACTION BAR: MINI-POS & UPLOAD */}
+      {/* mini pos and upload */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border rounded-lg bg-muted/20">
         
-        {/* The Mini-POS */}
+        {/* mini pos */}
         <form onSubmit={handleRecordSale} className="flex flex-1 items-center gap-3 w-full">
           <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 shrink-0">
             <ShoppingCart className="h-5 w-5 text-primary" />
@@ -337,7 +335,7 @@ export default function SalesPage() {
           </Button>
         </form>
 
-        {/* Bulk Upload Button */}
+        {/* bulk upload button */}
         <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="shrink-0">
@@ -364,7 +362,7 @@ export default function SalesPage() {
         </Dialog>
       </div>
 
-      {/* DATA TABLE HEADER */}
+      {/* data table header */}
       <div className="flex items-center justify-between pt-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -396,7 +394,7 @@ export default function SalesPage() {
         </DropdownMenu>
       </div>
 
-      {/* DATA TABLE */}
+      {/* data table*/}
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
@@ -432,7 +430,7 @@ export default function SalesPage() {
         </Table>
       </div>
 
-      {/* PAGINATION */}
+      {/* pagination */}
       <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
         <div>
           {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} sale(s) selected.

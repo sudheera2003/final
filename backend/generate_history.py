@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
-# 1. Load the environment variables from .env file
+# load environment variables
 load_dotenv()
 
-# 2. Get the MongoDB URI
+# get mongo uri
 mongo_uri = os.getenv("MONGO_URI")
 
 if not mongo_uri:
@@ -17,7 +17,7 @@ if not mongo_uri:
 print("Connecting to database...")
 client = MongoClient(mongo_uri)
 
-# 3. Connect to database
+# connect database
 db = client['final_project']
 
 def generate_historical_sales(days_back=180):
@@ -27,17 +27,16 @@ def generate_historical_sales(days_back=180):
         print("Error: No products found in the database. Please upload products first.")
         return
 
-    # --- NEW: Clear old data so you don't accidentally create millions of duplicate rows! ---
+    # clear old data
     print("Clearing old sales data to prevent duplicates...")
     db.sales.delete_many({})
 
     sales_to_insert = []
     
-    # --- THE TIMEZONE FIX ---
-    # Create a timezone object for Sri Lanka (UTC+05:30)
+    # create a timezone object for Sri Lanka (UTC+05:30)
     sl_tz = timezone(timedelta(hours=5, minutes=30))
     
-    # Generate the end date using the explicit timezone
+    # generate the end date using the explicit timezone
     end_date = datetime.now(sl_tz).replace(hour=23, minute=59, second=59)
     start_date = end_date - timedelta(days=days_back)
 
@@ -45,24 +44,23 @@ def generate_historical_sales(days_back=180):
 
     current_date = start_date
     while current_date <= end_date:
-        # Determine if it's a weekend (Friday=4, Saturday=5, Sunday=6)
+        # determine if it's a weekend (Friday=4, Saturday=5, Sunday=6)
         is_weekend = current_date.weekday() in [4, 5, 6]
         
-        # Simulate 15 to 40 orders per day (busier on weekends)
+        # simulate 15 to 40 orders per day (busier on weekends)
         daily_orders = random.randint(25, 50) if is_weekend else random.randint(10, 25)
 
         for _ in range(daily_orders):
-            # Pick a random product
+            # pick a random product
             product = random.choice(products)
             
-            # Simulate quantity (usually 1, sometimes 2 or 3)
+            # simulate quantity (usually 1, sometimes 2 or 3)
             qty = random.choices([1, 2, 3, 4], weights=[70, 20, 7, 3])[0]
             
             total_price = float(product.get("price", 0)) * qty
 
-            # Add a random time during operating hours
-            # Because current_date has our sl_tz timezone attached, 
-            # MongoDB will safely convert 10 PM to 4:30 PM UTC, preventing the rollover!
+            # add a random time during operating hours
+            # mongodb will safely convert 10 PM to 4:30 PM UTC, preventing the rollover
             sale_time = current_date.replace(
                 hour=random.randint(11, 22),
                 minute=random.randint(0, 59),
@@ -78,10 +76,10 @@ def generate_historical_sales(days_back=180):
                 "timestamp": sale_time
             })
 
-        # Move to the next day
+        # move to the next day
         current_date += timedelta(days=1)
 
-    # Insert into database
+    # insert into database
     if sales_to_insert:
         db.sales.insert_many(sales_to_insert)
         print(f"Successfully inserted {len(sales_to_insert)} historical sales records!")

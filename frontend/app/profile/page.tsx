@@ -5,8 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
-
-// UI Components
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,11 +14,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-// Icons (Added User icon)
 import { Mail, Shield, Copy, Check, CalendarDays, Key, Edit3, User, X, User2 } from "lucide-react";
 
-// ─── SCHEMAS ─────────────────────────────────────────────────────────────────
+// schemas
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
@@ -38,7 +34,7 @@ const passwordSchema = z.object({
 type ProfileValues = z.infer<typeof profileSchema>;
 type PasswordValues = z.infer<typeof passwordSchema>;
 
-// ─── HELPER FUNCTIONS ────────────────────────────────────────────────────────
+// helper functions
 function getInitials(name: string) {
   if (!name) return "US";
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -51,24 +47,24 @@ const roleBadgeVariant: Record<string, "default" | "secondary" | "destructive" |
 };
 
 export default function ProfilePage() {
-  // State
+  // state
   const [userData, setUserData] = useState({ name: "", email: "", role: "user", joinedAt: "Recently" });
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   
-  // UI States
-  const [isEditingProfile, setIsEditingProfile] = useState(false); // Controls inline editing
+  // UI states
+  const [isEditingProfile, setIsEditingProfile] = useState(false); // controls inline editing
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Forms
+  // forms
   const profileForm = useForm<ProfileValues>({ resolver: zodResolver(profileSchema) });
   const passwordForm = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
 
-  // ─── FETCH USER DATA ON LOAD ────────────────────────────────────────────────
+  // fetch user data on load
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -90,8 +86,8 @@ export default function ProfilePage() {
         if (response.ok) {
            const currentUser = await response.json();
            
-           // --- NEW DATE FORMATTING LOGIC ---
-           // Look for the date from the database, fallback to "Recently" if missing
+           // date formatting logic
+           // look for the date from the database, fallback to "Recently" if missing
            const rawDate = currentUser.joinedAt || currentUser.createdAt || currentUser.created_at;
            
            let formattedDate = "Recently";
@@ -103,7 +99,6 @@ export default function ProfilePage() {
                year: 'numeric' 
              }).format(dateObj);
            }
-           // ----------------------------------
 
            setUserData({
                name: currentUser.name || "Unknown",
@@ -134,7 +129,7 @@ export default function ProfilePage() {
   }, [profileForm]);
 
 
-  // ─── ACTIONS ────────────────────────────────────────────────────────────────
+  // actions
   const copyEmail = () => {
     navigator.clipboard.writeText(userData.email);
     setIsCopied(true);
@@ -165,7 +160,7 @@ export default function ProfilePage() {
 
       setUserData(prev => ({ ...prev, name: data.name, email: data.email }));
       toast.success("Profile updated!");
-      setIsEditingProfile(false); // Close edit mode on success
+      setIsEditingProfile(false); // close edit mode on success
     } catch (error: any) {
       toast.error(error.message || "Could not update profile");
     } finally {
@@ -202,7 +197,7 @@ export default function ProfilePage() {
     <TooltipProvider>
       <div className="p-6 max-w-5xl mx-auto space-y-8 h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar">
         
-        {/* PAGE HEADER */}
+        {/* page header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
           <p className="text-muted-foreground mt-1">
@@ -212,7 +207,7 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
           
-          {/* ── LEFT COLUMN: Identity Card ───────────────────────────────── */}
+          {/* left column: Identity Card */}
           <Card className="md:col-span-1 overflow-hidden border-primary/10 shadow-sm">
             <div className="h-24 w-full bg-gradient-to-br from-emerald-500/80 to-teal-700"></div>
             
@@ -241,7 +236,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* ── RIGHT COLUMN: Details & Settings ────────────────────────── */}
+          {/* right column: Details & Settings */}
           <div className="md:col-span-2 space-y-6">
             
             {/* Personal Information Section (INLINE EDITING) */}
@@ -263,7 +258,7 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="py-6">
                 {isEditingProfile ? (
-                  // --- EDIT MODE ---
+                  // edit mode
                   <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
                     <Controller
                       name="name" control={profileForm.control}
@@ -295,7 +290,7 @@ export default function ProfilePage() {
                     </div>
                   </form>
                 ) : (
-                  // --- VIEW MODE ---
+                  // view mode
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3">
                       <div className="flex items-center gap-4 min-w-0">
@@ -334,7 +329,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Security Section (UNCHANGED) */}
+            {/* security sections */}
             <Card className="shadow-sm border-destructive/10">
               <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
                 <div>
@@ -359,11 +354,10 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ── Dialogs ─────────────────────────── */}
+        {/* dialogs */}
         
-        {/* Profile Dialog REMOVED */}
 
-        {/* Change Password Dialog REMAINS */}
+        {/* change password dialog */}
         <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
           <DialogContent>
             <DialogHeader>

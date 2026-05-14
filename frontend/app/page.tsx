@@ -68,7 +68,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePermissions } from "@/hooks/use-permissions";
 import OrbitDotMotion from "@/components/pixel-perfect/orbit-dot-motion";
 
-// --- TYPES ---
+// types
 type PredictionData = {
   date: string;
   actual: number | null;
@@ -221,7 +221,7 @@ export default function DashboardPage() {
     );
   };
 
-  // --- SUMMARY METRICS ---
+  // summary calculations
   const past7DaysActual = chartData
     .filter((d) => d.actual !== null)
     .slice(-7)
@@ -234,11 +234,7 @@ export default function DashboardPage() {
       ? ((next7DaysPredicted - past7DaysActual) / past7DaysActual) * 100
       : 0;
 
-  // =========================================================================
-  // --- THE FIX: BULLETPROOF CALENDAR-BASED DAILY INSIGHTS MATH ---
-  // =========================================================================
-
-  // 1. Get real-world calendar time from your computer
+  // get real-world calendar time from computer
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
   const todayTime = todayDate.getTime();
@@ -247,7 +243,7 @@ export default function DashboardPage() {
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrowTime = tomorrowDate.getTime();
 
-  // 2. Search the AI's data for the exact matching calendar days
+  // search the data for the exact matching calendar days
   const todayData =
     chartData.find((d) => {
       const [year, month, day] = d.date.split("-");
@@ -270,7 +266,7 @@ export default function DashboardPage() {
       return dTime === tomorrowTime;
     }) || null;
 
-  // 3. Do the math safely
+  // math
   const todayActual = todayData?.actual || 0;
   const todayPredicted = todayData?.predicted || 0;
   const tomorrowPredicted = tomorrowData?.predicted || 0;
@@ -285,7 +281,6 @@ export default function DashboardPage() {
 
   const filteredChartData =
     timeRange === "7" ? chartData.slice(-14) : chartData;
-  // =========================================================================
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -389,9 +384,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* 1. TOP METRICS */}
+      {/* top metrics */}
       <div className="grid gap-4 md:grid-cols-4">
-        {/* Row 1 */}
+        {/* row 1 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -476,7 +471,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Row 2 */}
+        {/* row 2 */}
         <Card className="bg-muted/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -572,9 +567,9 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* 2. MAIN CONTENT SPLIT */}
+      {/* main content split */}
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        {/* LEFT COLUMN */}
+        {/* left column */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
             <CardHeader className="flex flex-row items-start justify-between pb-4">
@@ -658,7 +653,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* SMART RESTOCK LIST + EXPORT BUTTON */}
+          {/* smart restock list */}
           <Card className="flex flex-col flex-1">
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <div>
@@ -801,7 +796,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* right column*/}
         <div className="lg:col-span-1 flex flex-col gap-6">
           <Card>
             <CardHeader className="pb-3">
@@ -827,7 +822,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* EXPECTED ORDERS + EXPORT BUTTON */}
+          {/* expected orders */}
           <Card>
             <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
               <div>
@@ -876,7 +871,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* MASTER PREP LIST + EXPORT BUTTON */}
+          {/* master prep list */}
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
               <div>
